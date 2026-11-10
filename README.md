@@ -4,6 +4,7 @@ PHP client for the Vivalto Connect API v1. It sends SMS, renders HTML to PDF
 or images, reads message and document history, manages webhook endpoints and
 verifies incoming webhook signatures.
 
+- API documentation: https://connect.vivalto.no/docs
 - PHP 8.2 or newer
 - PSR-18 HTTP client and PSR-17 factories
 - Guzzle is the default transport
