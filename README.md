@@ -14,8 +14,9 @@ verifies incoming webhook signatures.
 composer require vivaltodev/connect-php
 ```
 
-The package is not on Packagist yet. Until it is published, add the package
-directory as a path repository:
+The package is published on Packagist as `vivaltodev/connect-php`. To develop
+the SDK inside the Connect monorepo, add the package directory as a path
+repository instead:
 
 ```json
 {
