@@ -285,7 +285,6 @@ standalone with any PSR-18 implementation.
 ```bash
 composer install
 composer test
-composer lint
 composer analyse
 ```
 
