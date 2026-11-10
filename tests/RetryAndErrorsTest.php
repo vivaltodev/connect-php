@@ -1,14 +1,14 @@
 <?php
 
 use GuzzleHttp\Psr7\Response;
-use Vivalto\Sms\Exceptions\ApiException;
-use Vivalto\Sms\Exceptions\AuthenticationException;
-use Vivalto\Sms\Exceptions\RateLimitException;
-use Vivalto\Sms\Exceptions\ServerException;
-use Vivalto\Sms\Exceptions\TransportException;
-use Vivalto\Sms\Exceptions\ValidationException;
-use Vivalto\Sms\Tests\Support\FakeHttpClient;
-use Vivalto\Sms\Tests\Support\FakeTransportException;
+use Vivalto\Connect\Exceptions\ApiException;
+use Vivalto\Connect\Exceptions\AuthenticationException;
+use Vivalto\Connect\Exceptions\RateLimitException;
+use Vivalto\Connect\Exceptions\ServerException;
+use Vivalto\Connect\Exceptions\TransportException;
+use Vivalto\Connect\Exceptions\ValidationException;
+use Vivalto\Connect\Tests\Support\FakeHttpClient;
+use Vivalto\Connect\Tests\Support\FakeTransportException;
 
 it('retries a 429 and a 500 and reuses the same idempotency key', function (): void {
     $http = new FakeHttpClient(
@@ -110,7 +110,7 @@ it('builds a readable message when the error envelope is missing', function (): 
     } catch (ServerException $exception) {
         expect($exception->status)->toBe(502)
             ->and($exception->errorCode)->toBeNull()
-            ->and($exception->getMessage())->toBe('Vivalto SMS API returned HTTP 502.');
+            ->and($exception->getMessage())->toBe('Vivalto Connect API returned HTTP 502.');
     }
 });
 

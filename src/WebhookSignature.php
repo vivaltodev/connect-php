@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms;
+namespace Vivalto\Connect;
 
 /**
- * Signs and verifies Vivalto SMS webhook payloads.
+ * Signs and verifies Vivalto Connect webhook payloads.
  *
  * The header format is "t=<timestamp>,v1=<hex>", where the digest is
  * HMAC-SHA256 over "<timestamp>.<raw body>". The timestamp limits replay.

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\DTO;
+namespace Vivalto\Connect\DTO;
 
 /**
  * An SMS message as returned by the API.

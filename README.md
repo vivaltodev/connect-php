@@ -1,7 +1,8 @@
-# Vivalto SMS PHP SDK
+# Vivalto Connect PHP SDK
 
-PHP client for the Vivalto SMS API v1. It sends SMS, reads message history,
-manages webhook endpoints and verifies incoming webhook signatures.
+PHP client for the Vivalto Connect API v1. It sends SMS, renders HTML to PDF
+or images, reads message and document history, manages webhook endpoints and
+verifies incoming webhook signatures.
 
 - PHP 8.2 or newer
 - PSR-18 HTTP client and PSR-17 factories
@@ -10,22 +11,25 @@ manages webhook endpoints and verifies incoming webhook signatures.
 ## Installation
 
 ```bash
-composer require vivaltodev/sms-php
+composer require vivaltodev/connect-php
 ```
 
-The package is not on Packagist yet. Until it is published, add the repository
-to the client application:
+The package is not on Packagist yet. Until it is published, add the package
+directory as a path repository:
 
 ```json
 {
     "repositories": [
         {
-            "type": "vcs",
-            "url": "git@github.com:vivaltodev/sms-php.git"
+            "type": "path",
+            "url": "../connect/packages/php-sdk",
+            "options": {
+                "symlink": true
+            }
         }
     ],
     "require": {
-        "vivaltodev/sms-php": "^0.1"
+        "vivaltodev/connect-php": "^0.2"
     }
 }
 ```
@@ -33,18 +37,18 @@ to the client application:
 ## Quick start
 
 ```php
-use Vivalto\Sms\Client;
-use Vivalto\Sms\Config;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\Config;
 
 $client = new Client(new Config(
-    baseUrl: 'https://sms.vivalto.no',
-    apiKey: getenv('VIVALTO_SMS_API_KEY'),
+    baseUrl: 'https://connect.vivalto.no',
+    apiKey: getenv('VIVALTO_CONNECT_API_KEY'),
 ));
 
 $message = $client->messages()->send(
     to: '+4790000000',
     from: 'Vivalto',
-    text: 'Hei fra Vivalto SMS',
+    text: 'Hei fra Vivalto Connect',
     reference: 'order-123',
 );
 
@@ -96,6 +100,80 @@ echo $page->total;
 Supported filters are `status`, `reference`, `recipient`, `created_after`,
 `created_before`, `per_page` and `page`.
 
+## Documents
+
+### Render a PDF
+
+```php
+$result = $client->documents()->render(
+    html: '<h1>Hei fra Vivalto</h1>',
+    options: [
+        'format' => 'A4',
+        'orientation' => 'portrait',
+        'margins' => ['top' => 20, 'right' => 15, 'bottom' => 20, 'left' => 15],
+    ],
+);
+
+file_put_contents('dokument.pdf', $result->contents);
+
+echo $result->mimeType;    // application/pdf
+echo $result->documentId;  // doc_...
+```
+
+`render()` returns the binary file synchronously and works for both PDF and
+images. Use `renderToFile()` to write it directly:
+
+```php
+$client->documents()->renderToFile('dokument.pdf', '<h1>Hei</h1>');
+```
+
+### Render an image
+
+```php
+$result = $client->documents()->render(
+    html: '<h1>Hei</h1>',
+    options: [
+        'type' => 'png',
+        'window_size' => ['width' => 1200, 'height' => 630],
+        'full_page' => true,
+    ],
+);
+
+file_put_contents('bilde.png', $result->contents);
+```
+
+### Asynchronous rendering
+
+```php
+$document = $client->documents()->create(
+    html: '<h1>Stor rapport</h1>',
+    options: ['format' => 'A4'],
+);
+
+// Poll until the document is completed.
+$document = $client->documents()->get($document->id);
+
+if ($document->isCompleted()) {
+    $pdf = $client->documents()->download($document->downloadUrl);
+}
+```
+
+### List documents
+
+```php
+$page = $client->documents()->list([
+    'type' => 'pdf',
+    'status' => 'completed',
+    'per_page' => 25,
+]);
+
+foreach ($page->items as $document) {
+    echo $document->id.' '.$document->status;
+}
+```
+
+Supported filters are `type`, `status`, `from`, `to`, `per_page` and `page`.
+
 ## Webhooks
 
 ```php
@@ -119,7 +197,7 @@ The signature header has the form `t=<timestamp>,v1=<hex>`. The digest is
 HMAC-SHA256 over `<timestamp>.<raw body>`.
 
 ```php
-use Vivalto\Sms\WebhookSignature;
+use Vivalto\Connect\WebhookSignature;
 
 $payload = file_get_contents('php://input');
 $header = $_SERVER['HTTP_X_VIVALTO_SIGNATURE'] ?? '';
@@ -140,7 +218,7 @@ is available for test fixtures.
 ## Errors
 
 Every non-2xx response is converted to an exception. All of them extend
-`Vivalto\Sms\Exceptions\ApiException` and expose `status`, `errorCode` and
+`Vivalto\Connect\Exceptions\ApiException` and expose `status`, `errorCode` and
 `details`.
 
 | Exception | Status |
@@ -154,7 +232,7 @@ Every non-2xx response is converted to an exception. All of them extend
 | `TransportException` | PSR-18 transport failure |
 
 ```php
-use Vivalto\Sms\Exceptions\ValidationException;
+use Vivalto\Connect\Exceptions\ValidationException;
 
 try {
     $client->messages()->send('+4790000000', 'Vivalto', 'Hei');
@@ -172,7 +250,7 @@ identical on every attempt, so a retry cannot create a duplicate message.
 
 ```php
 $client = new Client(new Config(
-    baseUrl: 'https://sms.vivalto.no',
+    baseUrl: 'https://connect.vivalto.no',
     apiKey: $apiKey,
     timeout: 30,
     retries: 3,
@@ -182,11 +260,11 @@ $client = new Client(new Config(
 ## Custom PSR-18 client
 
 ```php
-use Vivalto\Sms\Client;
-use Vivalto\Sms\Config;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\Config;
 
 $client = new Client(new Config(
-    baseUrl: 'https://sms.vivalto.no',
+    baseUrl: 'https://connect.vivalto.no',
     apiKey: $apiKey,
     httpClient: $psr18Client,
     requestFactory: $psr17RequestFactory,
@@ -200,23 +278,23 @@ The service provider and facade are optional and are discovered automatically
 by Laravel package discovery.
 
 ```bash
-php artisan vendor:publish --tag=vivalto-sms-config
+php artisan vendor:publish --tag=connect-config
 ```
 
 ```dotenv
-VIVALTO_SMS_API_KEY=your-api-key
-VIVALTO_SMS_BASE_URL=https://sms.vivalto.no
-VIVALTO_SMS_TIMEOUT=30
-VIVALTO_SMS_RETRIES=3
+VIVALTO_CONNECT_API_KEY=your-api-key
+VIVALTO_CONNECT_BASE_URL=https://connect.vivalto.no
+VIVALTO_CONNECT_TIMEOUT=30
+VIVALTO_CONNECT_RETRIES=3
 ```
 
 ```php
-use Vivalto\Sms\Laravel\Facades\VivaltoSms;
+use Vivalto\Connect\Laravel\Facades\VivaltoConnect;
 
-VivaltoSms::messages()->send('+4790000000', 'Vivalto', 'Hei');
+VivaltoConnect::messages()->send('+4790000000', 'Vivalto', 'Hei');
 ```
 
-The provider binds `Vivalto\Sms\Client` as a singleton, so constructor
+The provider binds `Vivalto\Connect\Client` as a singleton, so constructor
 injection works as usual.
 
 ## Development
@@ -230,7 +308,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.1.
+The package follows semantic versioning. The current release line is 0.2.
 
 ## License
 

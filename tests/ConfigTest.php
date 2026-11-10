@@ -1,6 +1,6 @@
 <?php
 
-use Vivalto\Sms\Config;
+use Vivalto\Connect\Config;
 
 it('accepts up to ten retries', function (): void {
     expect(new Config(baseUrl: 'https://api.example.test', apiKey: 'key', retries: 10))->toBeInstanceOf(Config::class);

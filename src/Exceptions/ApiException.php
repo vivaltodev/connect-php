@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\Exceptions;
+namespace Vivalto\Connect\Exceptions;
 
 use RuntimeException;
 use Throwable;
 
 /**
- * Base exception for every error returned by the Vivalto SMS API.
+ * Base exception for every error returned by the Vivalto Connect API.
  *
  * The API maps its error envelope {error: {code, message, details}} onto the
  * properties below. The untouched envelope is available through $details.

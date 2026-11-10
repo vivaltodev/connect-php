@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\Exceptions;
+namespace Vivalto\Connect\Exceptions;
 
 /**
  * The requested resource does not exist in the authenticated project.

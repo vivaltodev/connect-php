@@ -1,6 +1,6 @@
 <?php
 
-namespace Vivalto\Sms\Tests\Support;
+namespace Vivalto\Connect\Tests\Support;
 
 use Psr\Http\Client\ClientExceptionInterface;
 use RuntimeException;

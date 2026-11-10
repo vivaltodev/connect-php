@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\DTO;
+namespace Vivalto\Connect\DTO;
 
 /**
  * One webhook delivery attempt from the delivery log.

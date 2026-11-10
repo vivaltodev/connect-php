@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\Resources;
+namespace Vivalto\Connect\Resources;
 
-use Vivalto\Sms\Client;
-use Vivalto\Sms\DTO\Message;
-use Vivalto\Sms\DTO\MessagePage;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\DTO\Message;
+use Vivalto\Connect\DTO\MessagePage;
 
 /**
  * Send and read SMS messages.

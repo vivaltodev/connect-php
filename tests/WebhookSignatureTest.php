@@ -1,7 +1,7 @@
 <?php
 
-use Vivalto\Sms\Tests\Support\FakeHttpClient;
-use Vivalto\Sms\WebhookSignature;
+use Vivalto\Connect\Tests\Support\FakeHttpClient;
+use Vivalto\Connect\WebhookSignature;
 
 it('signs a payload as t=<timestamp>,v1=<hex>', function (): void {
     $signature = WebhookSignature::sign('{"hello":"world"}', 'secret', 1_700_000_000);

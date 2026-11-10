@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\DTO;
+namespace Vivalto\Connect\DTO;
 
-use Vivalto\Sms\Exceptions\ApiException;
+use Vivalto\Connect\Exceptions\ApiException;
 
 /**
  * Guards the fields that every valid API payload must contain.
@@ -41,7 +41,7 @@ final class Payload
     private static function missing(string $key): ApiException
     {
         return new ApiException(
-            "The Vivalto SMS API response is missing the required field '{$key}'.",
+            "The Vivalto Connect API response is missing the required field '{$key}'.",
             errorCode: 'invalid_response',
         );
     }

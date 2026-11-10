@@ -1,9 +1,9 @@
 <?php
 
-use Vivalto\Sms\DTO\WebhookDeliveryPage;
-use Vivalto\Sms\DTO\WebhookEndpoint;
-use Vivalto\Sms\Exceptions\ApiException;
-use Vivalto\Sms\Tests\Support\FakeHttpClient;
+use Vivalto\Connect\DTO\WebhookDeliveryPage;
+use Vivalto\Connect\DTO\WebhookEndpoint;
+use Vivalto\Connect\Exceptions\ApiException;
+use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 function webhookPayload(array $overrides = []): array
 {

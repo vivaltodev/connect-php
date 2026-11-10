@@ -1,11 +1,11 @@
 <?php
 
-use Vivalto\Sms\DTO\Message;
-use Vivalto\Sms\DTO\MessagePage;
-use Vivalto\Sms\Exceptions\ApiException;
-use Vivalto\Sms\Exceptions\NotFoundException;
-use Vivalto\Sms\Exceptions\ValidationException;
-use Vivalto\Sms\Tests\Support\FakeHttpClient;
+use Vivalto\Connect\DTO\Message;
+use Vivalto\Connect\DTO\MessagePage;
+use Vivalto\Connect\Exceptions\ApiException;
+use Vivalto\Connect\Exceptions\NotFoundException;
+use Vivalto\Connect\Exceptions\ValidationException;
+use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 it('sends a message with bearer auth, an idempotency key and a json body', function (): void {
     $http = new FakeHttpClient(jsonResponse(201, messagePayload()));

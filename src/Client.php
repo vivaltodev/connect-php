@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms;
+namespace Vivalto\Connect;
 
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Psr7\HttpFactory;
@@ -13,25 +13,27 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
-use Vivalto\Sms\Exceptions\ApiException;
-use Vivalto\Sms\Exceptions\AuthenticationException;
-use Vivalto\Sms\Exceptions\NotFoundException;
-use Vivalto\Sms\Exceptions\RateLimitException;
-use Vivalto\Sms\Exceptions\ServerException;
-use Vivalto\Sms\Exceptions\TransportException;
-use Vivalto\Sms\Exceptions\ValidationException;
-use Vivalto\Sms\Resources\Messages;
-use Vivalto\Sms\Resources\Webhooks;
+use Vivalto\Connect\DTO\RawResponse;
+use Vivalto\Connect\Exceptions\ApiException;
+use Vivalto\Connect\Exceptions\AuthenticationException;
+use Vivalto\Connect\Exceptions\NotFoundException;
+use Vivalto\Connect\Exceptions\RateLimitException;
+use Vivalto\Connect\Exceptions\ServerException;
+use Vivalto\Connect\Exceptions\TransportException;
+use Vivalto\Connect\Exceptions\ValidationException;
+use Vivalto\Connect\Resources\Documents;
+use Vivalto\Connect\Resources\Messages;
+use Vivalto\Connect\Resources\Webhooks;
 
 /**
- * The entry point for the Vivalto SMS API.
+ * The entry point for the Vivalto Connect API.
  *
  * The client speaks PSR-18 and PSR-17. Guzzle is used by default, but any
  * compliant implementation can be injected through Config.
  */
 final class Client
 {
-    public const VERSION = '0.1.0';
+    public const VERSION = '0.2.0';
 
     private readonly ClientInterface $httpClient;
 
@@ -42,6 +44,8 @@ final class Client
     private ?Messages $messages = null;
 
     private ?Webhooks $webhooks = null;
+
+    private ?Documents $documents = null;
 
     public function __construct(private readonly Config $config)
     {
@@ -68,6 +72,11 @@ final class Client
     public function webhooks(): Webhooks
     {
         return $this->webhooks ??= new Webhooks($this);
+    }
+
+    public function documents(): Documents
+    {
+        return $this->documents ??= new Documents($this);
     }
 
     /**
@@ -104,6 +113,50 @@ final class Client
         array $headers = [],
         array $query = [],
     ): array {
+        return $this->decode($this->send($method, $path, $body, $headers, $query));
+    }
+
+    /**
+     * Send one API request and return the raw response.
+     *
+     * Used for binary endpoints such as PDF and image rendering. Errors are
+     * mapped to the same exceptions as request().
+     *
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $query
+     *
+     * @internal
+     */
+    public function requestRaw(
+        string $method,
+        string $path,
+        ?array $body = null,
+        array $headers = [],
+        array $query = [],
+    ): RawResponse {
+        $response = $this->send($method, $path, $body, $headers, $query);
+
+        return new RawResponse(
+            contents: (string) $response->getBody(),
+            contentType: $response->getHeaderLine('Content-Type'),
+            status: $response->getStatusCode(),
+            headers: $response->getHeaders(),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $query
+     */
+    private function send(
+        string $method,
+        string $path,
+        ?array $body,
+        array $headers,
+        array $query,
+    ): ResponseInterface {
         $attempt = 0;
 
         while (true) {
@@ -113,7 +166,7 @@ final class Client
                 $response = $this->httpClient->sendRequest($request);
             } catch (ClientExceptionInterface $exception) {
                 throw new TransportException(
-                    'Could not reach the Vivalto SMS API: '.$exception->getMessage(),
+                    'Could not reach the Vivalto Connect API: '.$exception->getMessage(),
                     $exception,
                 );
             }
@@ -121,7 +174,7 @@ final class Client
             $status = $response->getStatusCode();
 
             if ($status >= 200 && $status < 300) {
-                return $this->decode($response);
+                return $response;
             }
 
             $retryable = $status === 429 || $status >= 500;
@@ -152,7 +205,7 @@ final class Client
         $request = $this->requestFactory->createRequest($method, $this->url($path, $query))
             ->withHeader('Authorization', 'Bearer '.$this->config->apiKey)
             ->withHeader('Accept', 'application/json')
-            ->withHeader('User-Agent', 'vivalto-sms-php/'.self::VERSION);
+            ->withHeader('User-Agent', 'vivalto-connect-php/'.self::VERSION);
 
         foreach ($headers as $name => $value) {
             $request = $request->withHeader($name, $value);
@@ -203,7 +256,7 @@ final class Client
             $decoded = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
         } catch (JsonException) {
             throw new ApiException(
-                'The Vivalto SMS API returned invalid JSON.',
+                'The Vivalto Connect API returned invalid JSON.',
                 $response->getStatusCode(),
                 'invalid_response',
             );
@@ -211,7 +264,7 @@ final class Client
 
         if (! is_array($decoded)) {
             throw new ApiException(
-                'The Vivalto SMS API returned an unexpected JSON payload.',
+                'The Vivalto Connect API returned an unexpected JSON payload.',
                 $response->getStatusCode(),
                 'invalid_response',
             );
@@ -234,7 +287,7 @@ final class Client
         $code = isset($error['code']) && is_string($error['code']) ? $error['code'] : null;
         $message = isset($error['message']) && is_string($error['message']) && $error['message'] !== ''
             ? $error['message']
-            : 'Vivalto SMS API returned HTTP '.$status.'.';
+            : 'Vivalto Connect API returned HTTP '.$status.'.';
         $details = $error['details'] ?? null;
 
         return match (true) {

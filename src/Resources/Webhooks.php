@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\Resources;
+namespace Vivalto\Connect\Resources;
 
-use Vivalto\Sms\Client;
-use Vivalto\Sms\DTO\WebhookDeliveryPage;
-use Vivalto\Sms\DTO\WebhookEndpoint;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\DTO\WebhookDeliveryPage;
+use Vivalto\Connect\DTO\WebhookEndpoint;
 
 /**
  * Manage webhook endpoints and inspect their delivery log.

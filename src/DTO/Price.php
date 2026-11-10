@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms\DTO;
+namespace Vivalto\Connect\DTO;
 
 /**
  * The price of a message in NOK.

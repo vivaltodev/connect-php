@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Vivalto\Sms;
+namespace Vivalto\Connect;
 
 use InvalidArgumentException;
 use Psr\Http\Client\ClientInterface;
@@ -10,7 +10,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 
 /**
- * Immutable configuration for the Vivalto SMS client.
+ * Immutable configuration for the Vivalto Connect client.
  *
  * The PSR-18 client and PSR-17 factories are optional. When they are omitted
  * the SDK uses the Guzzle implementations.
@@ -27,23 +27,23 @@ final readonly class Config
         public ?StreamFactoryInterface $streamFactory = null,
     ) {
         if (trim($this->baseUrl) === '') {
-            throw new InvalidArgumentException('The Vivalto SMS base URL cannot be empty.');
+            throw new InvalidArgumentException('The Vivalto Connect base URL cannot be empty.');
         }
 
         if (trim($this->apiKey) === '') {
-            throw new InvalidArgumentException('The Vivalto SMS API key cannot be empty.');
+            throw new InvalidArgumentException('The Vivalto Connect API key cannot be empty.');
         }
 
         if ($this->timeout < 1) {
-            throw new InvalidArgumentException('The Vivalto SMS timeout must be at least one second.');
+            throw new InvalidArgumentException('The Vivalto Connect timeout must be at least one second.');
         }
 
         if ($this->retries < 0) {
-            throw new InvalidArgumentException('The Vivalto SMS retry count cannot be negative.');
+            throw new InvalidArgumentException('The Vivalto Connect retry count cannot be negative.');
         }
 
         if ($this->retries > 10) {
-            throw new InvalidArgumentException('The Vivalto SMS retry count cannot exceed 10.');
+            throw new InvalidArgumentException('The Vivalto Connect retry count cannot exceed 10.');
         }
     }
 }

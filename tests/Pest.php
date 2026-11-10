@@ -1,9 +1,9 @@
 <?php
 
 use GuzzleHttp\Psr7\Response;
-use Vivalto\Sms\Client;
-use Vivalto\Sms\Config;
-use Vivalto\Sms\Tests\Support\FakeHttpClient;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\Config;
+use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 /**
  * Build a client wired to the fake PSR-18 transport.
@@ -110,4 +110,40 @@ function pagePayload(array $items, array $meta = []): array
             'total' => $total,
         ], $meta),
     ];
+}
+
+/**
+ * A document payload shaped like the API v1 DocumentResource.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function documentPayload(array $overrides = []): array
+{
+    return array_merge([
+        'id' => 'doc_abc123',
+        'type' => 'pdf',
+        'status' => 'completed',
+        'mime_type' => 'application/pdf',
+        'bytes' => 1234,
+        'duration_ms' => 120,
+        'created_at' => '2026-11-10T10:00:00Z',
+        'completed_at' => '2026-11-10T10:00:01Z',
+        'expires_at' => '2026-12-10T10:00:00Z',
+        'error' => null,
+        'links' => [
+            'self' => 'https://api.example.test/api/v1/documents/doc_abc123',
+            'download' => 'https://api.example.test/api/v1/documents/doc_abc123/download?signature=abc',
+        ],
+    ], $overrides);
+}
+
+/**
+ * A PSR-7 response with a binary body.
+ *
+ * @param  array<string, string>  $headers
+ */
+function binaryResponse(int $status, string $body, string $contentType, array $headers = []): Response
+{
+    return new Response($status, $headers + ['Content-Type' => $contentType], $body);
 }

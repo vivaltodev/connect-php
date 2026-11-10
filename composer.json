@@ -1,11 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "vivaltodev/sms-php",
-    "description": "PHP SDK for the Vivalto SMS API",
+    "name": "vivaltodev/connect-php",
+    "description": "PHP SDK for the Vivalto Connect API: SMS, PDF, images and webhooks",
     "type": "library",
     "license": "proprietary",
     "keywords": [
         "sms",
+        "pdf",
+        "document",
         "vivalto",
         "api",
         "sdk"
@@ -33,12 +35,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Vivalto\\Sms\\": "src/"
+            "Vivalto\\Connect\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Vivalto\\Sms\\Tests\\": "tests/"
+            "Vivalto\\Connect\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -57,10 +59,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Vivalto\\Sms\\Laravel\\VivaltoSmsServiceProvider"
+                "Vivalto\\Connect\\Laravel\\VivaltoConnectServiceProvider"
             ],
             "aliases": {
-                "VivaltoSms": "Vivalto\\Sms\\Laravel\\Facades\\VivaltoSms"
+                "VivaltoConnect": "Vivalto\\Connect\\Laravel\\Facades\\VivaltoConnect"
             }
         }
     }

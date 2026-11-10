@@ -2,12 +2,12 @@
 
 use Illuminate\Config\Repository;
 use Illuminate\Container\Container;
-use Vivalto\Sms\Client;
-use Vivalto\Sms\Laravel\Facades\VivaltoSms;
-use Vivalto\Sms\Laravel\VivaltoSmsServiceProvider;
+use Vivalto\Connect\Client;
+use Vivalto\Connect\Laravel\Facades\VivaltoConnect;
+use Vivalto\Connect\Laravel\VivaltoConnectServiceProvider;
 
 it('ships a publishable config file with the expected keys', function (): void {
-    $config = require __DIR__.'/../config/vivalto-sms.php';
+    $config = require __DIR__.'/../config/connect.php';
 
     expect($config)->toBeArray()
         ->and($config)->toHaveKeys(['api_key', 'base_url', 'timeout', 'retries'])
@@ -16,7 +16,7 @@ it('ships a publishable config file with the expected keys', function (): void {
 });
 
 it('builds a client from laravel config', function (): void {
-    $client = VivaltoSmsServiceProvider::makeClient([
+    $client = VivaltoConnectServiceProvider::makeClient([
         'api_key' => 'laravel-key',
         'base_url' => 'https://sms.example.test',
         'timeout' => 10,
@@ -27,7 +27,7 @@ it('builds a client from laravel config', function (): void {
 });
 
 it('falls back to safe defaults for a partial config', function (): void {
-    $client = VivaltoSmsServiceProvider::makeClient([
+    $client = VivaltoConnectServiceProvider::makeClient([
         'api_key' => 'laravel-key',
     ]);
 
@@ -35,7 +35,7 @@ it('falls back to safe defaults for a partial config', function (): void {
 });
 
 it('resolves the client through the facade', function (): void {
-    $method = new ReflectionMethod(VivaltoSms::class, 'getFacadeAccessor');
+    $method = new ReflectionMethod(VivaltoConnect::class, 'getFacadeAccessor');
 
     expect($method->invoke(null))->toBe(Client::class);
 });
@@ -43,7 +43,7 @@ it('resolves the client through the facade', function (): void {
 it('registers the client in a container from the config binding', function (): void {
     $container = new Container;
     $container->instance('config', new Repository([
-        'vivalto-sms' => [
+        'connect' => [
             'api_key' => 'container-key',
             'base_url' => 'https://sms.example.test',
             'timeout' => 10,
@@ -51,7 +51,7 @@ it('registers the client in a container from the config binding', function (): v
         ],
     ]));
 
-    $provider = new VivaltoSmsServiceProvider($container);
+    $provider = new VivaltoConnectServiceProvider($container);
     $provider->register();
 
     $client = $container->make(Client::class);
