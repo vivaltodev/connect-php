@@ -1,0 +1,65 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "vivaltodev/sms-php",
+    "description": "PHP SDK for the Vivalto SMS API",
+    "type": "library",
+    "license": "proprietary",
+    "keywords": [
+        "sms",
+        "vivalto",
+        "api",
+        "sdk"
+    ],
+    "require": {
+        "php": "^8.2",
+        "guzzlehttp/guzzle": "^7.8",
+        "guzzlehttp/psr7": "^2.6",
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0",
+        "psr/http-message": "^1.1 || ^2.0"
+    },
+    "require-dev": {
+        "illuminate/support": "^11.0 || ^12.0",
+        "laravel/pint": "^1.13",
+        "pestphp/pest": "^3.0",
+        "phpoption/phpoption": "^1.10",
+        "phpstan/phpstan": "^2.1",
+        "vlucas/phpdotenv": "^5.8"
+    },
+    "suggest": {
+        "illuminate/support": "Required for the optional Laravel service provider and facade."
+    },
+    "autoload": {
+        "psr-4": {
+            "Vivalto\\Sms\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Vivalto\\Sms\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "analyse": "phpstan analyse"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Vivalto\\Sms\\Laravel\\VivaltoSmsServiceProvider"
+            ],
+            "aliases": {
+                "VivaltoSms": "Vivalto\\Sms\\Laravel\\Facades\\VivaltoSms"
+            }
+        }
+    }
+}
