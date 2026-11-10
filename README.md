@@ -274,30 +274,11 @@ $client = new Client(new Config(
 ));
 ```
 
-## Laravel
+## Framework integration
 
-The service provider and facade are optional and are discovered automatically
-by Laravel package discovery.
-
-```bash
-php artisan vendor:publish --tag=connect-config
-```
-
-```dotenv
-VIVALTO_CONNECT_API_KEY=your-api-key
-VIVALTO_CONNECT_BASE_URL=https://connect.vivalto.no
-VIVALTO_CONNECT_TIMEOUT=30
-VIVALTO_CONNECT_RETRIES=3
-```
-
-```php
-use Vivalto\Connect\Laravel\Facades\VivaltoConnect;
-
-VivaltoConnect::messages()->send('+4790000000', 'Vivalto', 'Hei');
-```
-
-The provider binds `Vivalto\Connect\Client` as a singleton, so constructor
-injection works as usual.
+The package includes an optional service provider and facade for frameworks
+that support package discovery. They are not required; the client works
+standalone with any PSR-18 implementation.
 
 ## Development
 
@@ -314,6 +295,4 @@ The package follows semantic versioning. The current release line is 0.2.
 
 ## License
 
-This package is proprietary. `composer.json` marks it as `proprietary`, and the
-license must be confirmed with the project owner before publishing to Packagist
-or sharing it outside the Vivalto client applications.
+This package is proprietary. `composer.json` marks it as `proprietary`.
