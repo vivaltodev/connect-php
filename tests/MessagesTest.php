@@ -2,6 +2,7 @@
 
 use Vivalto\Sms\DTO\Message;
 use Vivalto\Sms\DTO\MessagePage;
+use Vivalto\Sms\Exceptions\ApiException;
 use Vivalto\Sms\Exceptions\NotFoundException;
 use Vivalto\Sms\Exceptions\ValidationException;
 use Vivalto\Sms\Tests\Support\FakeHttpClient;
@@ -177,4 +178,20 @@ it('turns a 404 response into a not found exception', function (): void {
 
     expect(fn () => $client->messages()->get('msg_missing'))
         ->toThrow(NotFoundException::class, 'Meldingen finnes ikke.');
+});
+
+it('rejects a message response without an id', function (): void {
+    $payload = messagePayload();
+    unset($payload['id']);
+
+    $http = new FakeHttpClient(jsonResponse(201, $payload));
+    $client = sdkClient($http);
+
+    try {
+        $client->messages()->send('+4790000000', 'Vivalto', 'Hei');
+        $this->fail('Expected an ApiException.');
+    } catch (ApiException $exception) {
+        expect($exception->errorCode)->toBe('invalid_response')
+            ->and($exception->getMessage())->toContain("'id'");
+    }
 });

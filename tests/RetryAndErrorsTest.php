@@ -5,8 +5,10 @@ use Vivalto\Sms\Exceptions\ApiException;
 use Vivalto\Sms\Exceptions\AuthenticationException;
 use Vivalto\Sms\Exceptions\RateLimitException;
 use Vivalto\Sms\Exceptions\ServerException;
+use Vivalto\Sms\Exceptions\TransportException;
 use Vivalto\Sms\Exceptions\ValidationException;
 use Vivalto\Sms\Tests\Support\FakeHttpClient;
+use Vivalto\Sms\Tests\Support\FakeTransportException;
 
 it('retries a 429 and a 500 and reuses the same idempotency key', function (): void {
     $http = new FakeHttpClient(
@@ -109,5 +111,20 @@ it('builds a readable message when the error envelope is missing', function (): 
         expect($exception->status)->toBe(502)
             ->and($exception->errorCode)->toBeNull()
             ->and($exception->getMessage())->toBe('Vivalto SMS API returned HTTP 502.');
+    }
+});
+
+it('keeps the transport failure as the previous exception', function (): void {
+    $original = new FakeTransportException('Connection refused');
+    $http = new FakeHttpClient($original);
+    $client = sdkClient($http);
+
+    try {
+        $client->messages()->list();
+        $this->fail('Expected a TransportException.');
+    } catch (TransportException $exception) {
+        expect($exception->getPrevious())->toBe($original)
+            ->and($exception->errorCode)->toBeNull()
+            ->and($exception->getMessage())->toContain('Connection refused');
     }
 });

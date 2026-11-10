@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms\Laravel;
 
 use Illuminate\Contracts\Config\Repository;

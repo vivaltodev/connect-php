@@ -58,6 +58,19 @@ it('rejects a wrong secret', function (): void {
     expect(WebhookSignature::verify($payload, $header, 'wrong-secret', 1_700_000_000))->toBeFalse();
 });
 
+it('accepts any matching signature during secret rotation', function (): void {
+    $payload = '{"event":"message.delivered"}';
+    $now = 1_700_000_000;
+    $old = WebhookSignature::sign($payload, 'old-secret', $now);
+    $new = WebhookSignature::sign($payload, 'new-secret', $now);
+
+    $combined = 't='.$now.',v1='.hash_hmac('sha256', $now.'.'.$payload, 'old-secret').',v1='.hash_hmac('sha256', $now.'.'.$payload, 'new-secret');
+
+    expect(WebhookSignature::verify($payload, $combined, 'new-secret', $now))->toBeTrue()
+        ->and(WebhookSignature::verify($payload, $combined, 'old-secret', $now))->toBeTrue()
+        ->and($old)->not->toBe($new);
+});
+
 it('rejects malformed signature headers', function (string $header): void {
     expect(WebhookSignature::verify('{}', $header, 'secret', 1_700_000_000))->toBeFalse();
 })->with([

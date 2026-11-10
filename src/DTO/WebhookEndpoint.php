@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms\DTO;
 
 /**
@@ -27,15 +29,15 @@ final readonly class WebhookEndpoint
      */
     public static function fromArray(array $data): self
     {
-        $events = $data['events'] ?? [];
+        $events = Payload::list($data, 'events');
 
         return new self(
-            id: (string) ($data['id'] ?? ''),
-            url: (string) ($data['url'] ?? ''),
-            events: is_array($events) ? array_values(array_map(
+            id: Payload::string($data, 'id'),
+            url: Payload::string($data, 'url'),
+            events: array_values(array_map(
                 static fn (mixed $event): string => (string) $event,
                 $events,
-            )) : [],
+            )),
             isActive: (bool) ($data['is_active'] ?? true),
             description: isset($data['description']) ? (string) $data['description'] : null,
             apiKeyId: isset($data['api_key_id']) ? (string) $data['api_key_id'] : null,

@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms\Exceptions;
 
 use RuntimeException;
+use Throwable;
 
 /**
  * Base exception for every error returned by the Vivalto SMS API.
@@ -17,7 +20,8 @@ class ApiException extends RuntimeException
         public readonly int $status = 0,
         public readonly ?string $errorCode = null,
         public readonly mixed $details = null,
+        ?Throwable $previous = null,
     ) {
-        parent::__construct($message);
+        parent::__construct($message, 0, $previous);
     }
 }

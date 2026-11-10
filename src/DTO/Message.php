@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms\DTO;
 
 /**
@@ -36,10 +38,10 @@ final readonly class Message
         $error = $data['error'] ?? null;
 
         return new self(
-            id: (string) ($data['id'] ?? ''),
+            id: Payload::string($data, 'id'),
             reference: isset($data['reference']) ? (string) $data['reference'] : null,
-            status: (string) ($data['status'] ?? ''),
-            to: (string) ($data['to'] ?? ''),
+            status: Payload::string($data, 'status'),
+            to: Payload::string($data, 'to'),
             from: (string) ($data['from'] ?? ''),
             class: (string) ($data['class'] ?? 'standard'),
             parts: isset($data['parts']) ? (int) $data['parts'] : null,

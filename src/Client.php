@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms;
 
 use GuzzleHttp\Client as GuzzleClient;

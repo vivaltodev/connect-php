@@ -231,3 +231,9 @@ composer analyse
 ## Versioning
 
 The package follows semantic versioning. The current release line is 0.1.
+
+## License
+
+This package is proprietary. `composer.json` marks it as `proprietary`, and the
+license must be confirmed with the project owner before publishing to Packagist
+or sharing it outside the Vivalto client applications.

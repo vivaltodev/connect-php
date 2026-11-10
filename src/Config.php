@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms;
 
 use InvalidArgumentException;
@@ -38,6 +40,10 @@ final readonly class Config
 
         if ($this->retries < 0) {
             throw new InvalidArgumentException('The Vivalto SMS retry count cannot be negative.');
+        }
+
+        if ($this->retries > 10) {
+            throw new InvalidArgumentException('The Vivalto SMS retry count cannot exceed 10.');
         }
     }
 }

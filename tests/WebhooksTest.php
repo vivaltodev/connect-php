@@ -2,6 +2,7 @@
 
 use Vivalto\Sms\DTO\WebhookDeliveryPage;
 use Vivalto\Sms\DTO\WebhookEndpoint;
+use Vivalto\Sms\Exceptions\ApiException;
 use Vivalto\Sms\Tests\Support\FakeHttpClient;
 
 function webhookPayload(array $overrides = []): array
@@ -112,4 +113,20 @@ it('fetches the paginated delivery log for a webhook', function (): void {
         ->and($page->items[0]->createdAt)->toBe('2026-11-10T10:00:00Z')
         ->and($page->currentPage)->toBe(3)
         ->and($page->lastPage)->toBe(3);
+});
+
+it('rejects a webhook response without a url', function (): void {
+    $payload = webhookPayload();
+    unset($payload['url']);
+
+    $http = new FakeHttpClient(jsonResponse(201, $payload));
+    $client = sdkClient($http);
+
+    try {
+        $client->webhooks()->create('https://client.example.test/hooks/sms', ['message.delivered']);
+        $this->fail('Expected an ApiException.');
+    } catch (ApiException $exception) {
+        expect($exception->errorCode)->toBe('invalid_response')
+            ->and($exception->getMessage())->toContain("'url'");
+    }
 });

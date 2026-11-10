@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Vivalto\Sms;
 
 /**
@@ -7,6 +9,8 @@ namespace Vivalto\Sms;
  *
  * The header format is "t=<timestamp>,v1=<hex>", where the digest is
  * HMAC-SHA256 over "<timestamp>.<raw body>". The timestamp limits replay.
+ * More than one v1 segment is accepted so a rotated secret can be validated
+ * during the overlap window.
  */
 final class WebhookSignature
 {
@@ -26,17 +30,34 @@ final class WebhookSignature
         ?int $now = null,
         int $tolerance = self::DEFAULT_TOLERANCE,
     ): bool {
-        $segments = self::parseHeader($header);
+        $timestampValue = null;
+        $signatures = [];
 
-        if (! isset($segments['t'], $segments['v1'])) {
+        foreach (explode(',', $header) as $segment) {
+            $pair = explode('=', trim($segment), 2);
+
+            if (count($pair) !== 2 || $pair[0] === '') {
+                continue;
+            }
+
+            $value = trim($pair[1]);
+
+            if ($pair[0] === 't') {
+                $timestampValue = $value;
+            } elseif ($pair[0] === 'v1') {
+                $signatures[] = $value;
+            }
+        }
+
+        if ($timestampValue === null || $signatures === []) {
             return false;
         }
 
-        if (! ctype_digit($segments['t'])) {
+        if (! ctype_digit($timestampValue)) {
             return false;
         }
 
-        $timestamp = (int) $segments['t'];
+        $timestamp = (int) $timestampValue;
         $now ??= time();
 
         if (abs($now - $timestamp) > $tolerance) {
@@ -45,24 +66,12 @@ final class WebhookSignature
 
         $expected = hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
 
-        return hash_equals($expected, $segments['v1']);
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function parseHeader(string $header): array
-    {
-        $segments = [];
-
-        foreach (explode(',', $header) as $segment) {
-            $pair = explode('=', trim($segment), 2);
-
-            if (count($pair) === 2 && $pair[0] !== '') {
-                $segments[$pair[0]] = trim($pair[1]);
+        foreach ($signatures as $signature) {
+            if (hash_equals($expected, $signature)) {
+                return true;
             }
         }
 
-        return $segments;
+        return false;
     }
 }
