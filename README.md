@@ -1,8 +1,9 @@
 # Vivalto Connect PHP SDK
 
 PHP client for the Vivalto Connect API v1. It sends SMS, renders HTML to PDF
-or images, reads message and document history, manages webhook endpoints and
-verifies incoming webhook signatures.
+or images, reads message and document history, manages webhook endpoints,
+verifies incoming webhook signatures, reads account limits and prices, and
+handles hosted Meilisearch status, usage and tenant tokens.
 
 - API documentation: https://connect.vivalto.no/docs
 - PHP 8.2 or newer
@@ -31,7 +32,7 @@ repository instead:
         }
     ],
     "require": {
-        "vivaltodev/connect-php": "^0.2"
+        "vivaltodev/connect-php": "^0.3"
     }
 }
 ```
@@ -101,6 +102,41 @@ echo $page->total;
 
 Supported filters are `status`, `reference`, `recipient`, `created_after`,
 `created_before`, `per_page` and `page`.
+
+## Account and limits
+
+`me()` returns the identity, scopes, products and rate limits of the API key.
+Use it to fail fast on a misconfigured environment.
+
+```php
+$account = $client->me();
+
+echo $account->project->name;          // Nettsiden
+echo $account->rateLimitPerMinute;     // 600
+
+if (! $account->hasScope('messages:send')) {
+    throw new RuntimeException('This key cannot send SMS.');
+}
+
+$account->productKeys();               // ['sms', 'pdf']
+```
+
+## Prices
+
+`pricing()` returns every price that currently applies to the project, merged
+in precedence order. The API never exposes provider cost or margin.
+
+```php
+$prices = $client->pricing()->list();
+
+foreach ($prices->for('NO', 'standard') as $item) {
+    echo $item->partsMin.'-'.($item->partsMax ?? '∞').': '
+        .$item->price->amount.' '.$item->price->currency;
+}
+```
+
+A per-part price applies to any part count, so its `partsMax` is `null` and
+`perPart` is `true`. A fixed price only applies inside `partsMin`-`partsMax`.
 
 ## Documents
 
@@ -191,7 +227,19 @@ $secret = $endpoint->secret;
 $endpoints = $client->webhooks()->list();
 
 $deliveries = $client->webhooks()->deliveries($endpoint->id, page: 1, perPage: 20);
+
+// Only the supplied attributes are sent. null clears a field.
+$client->webhooks()->update($endpoint->id, [
+    'events' => ['message.delivered', 'message.failed', 'message.queued'],
+    'is_active' => false,
+]);
+
+// Deleting an endpoint stops further deliveries immediately.
+$client->webhooks()->delete($endpoint->id);
 ```
+
+The signing secret cannot be changed on an existing endpoint. Create a new
+one, switch the receiving URL, and delete the old one to rotate it.
 
 ### Verify an incoming webhook
 
@@ -216,6 +264,90 @@ if (! $client->verifyWebhook($payload, $header, $secret)) {
 `verifyWebhook()` accepts an optional `$now` unix timestamp (useful in tests)
 and a `$tolerance` in seconds. `WebhookSignature::sign($payload, $secret, $timestamp)`
 is available for test fixtures.
+
+## Search
+
+Search is a hosted Meilisearch instance with one isolated namespace per
+project. Connect is the control plane: the SDK reads status and usage and
+signs tenant tokens, while search traffic goes directly from the client to
+the Meilisearch host.
+
+```php
+$status = $client->search()->status();
+
+echo $status->namespace;      // prj_a1b2c3d4e5__
+echo $status->status;         // active, degraded, pending, failed or disabled
+echo $status->documents;      // 12480
+echo $status->index('products')?->documents;
+```
+
+`status()` is built from cached tables, so it keeps answering while
+Meilisearch itself is down. `healthy()` can be `false` while `status` is still
+`active`.
+
+```php
+$usage = $client->search()->usage(days: 7);
+
+foreach ($usage->rows as $day) {
+    echo $day->date.' '.$day->documents.' '.($day->searches ?? '-');
+}
+```
+
+The window is clamped to 1-365 days and defaults to 30.
+
+### Tenant tokens
+
+For a private frontend, sign a short-lived token instead of shipping a search
+key to the browser:
+
+```php
+$token = $client->search()->token(
+    index: 'products',
+    filter: 'user_id = 42',
+    expiresIn: 900,
+);
+
+// Send token and host to the frontend.
+echo $token->token;
+echo $token->host;
+```
+
+The lifetime is 60 to 3600 seconds and defaults to 900. The token only works
+inside the project namespace, can carry one filter, and becomes invalid the
+moment the parent API key is revoked. A 409 means the credential is still
+provisioning; retry shortly.
+
+### Laravel Scout
+
+Scout is not wrapped by the SDK, and does not need to be. Scout talks directly
+to Meilisearch with four environment variables from the portal:
+
+```dotenv
+SCOUT_DRIVER=meilisearch
+MEILISEARCH_HOST=https://search.connect.vivalto.no
+MEILISEARCH_KEY=<write key from the portal>
+SCOUT_PREFIX=prj_a1b2c3d4e5__
+```
+
+Meilisearch keys are deliberately not part of the API, so the SDK can neither
+fetch nor rotate them. Use the SDK for status, usage and tenant tokens, and
+the portal for the write key. `SCOUT_PREFIX` only applies through the default
+`searchableAs()`; a model that overrides it must include the namespace itself.
+
+## Health
+
+`health()` reads the public health check. A degraded API answers 503; the SDK
+returns the reported checks instead of throwing, and it does not retry.
+
+```php
+$health = $client->health();
+
+if (! $health->isHealthy()) {
+    foreach ($health->failedChecks() as $check) {
+        logger()->warning($check->name.': '.$check->message);
+    }
+}
+```
 
 ## Errors
 
@@ -290,7 +422,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.2.
+The package follows semantic versioning. The current release line is 0.3.
 
 ## License
 

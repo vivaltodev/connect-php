@@ -38,6 +38,24 @@ final class Payload
         return $data[$key];
     }
 
+    /**
+     * Read a required nested object.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function assoc(array $data, string $key): array
+    {
+        if (! isset($data[$key]) || ! is_array($data[$key])) {
+            throw self::missing($key);
+        }
+
+        /** @var array<string, mixed> $value */
+        $value = $data[$key];
+
+        return $value;
+    }
+
     private static function missing(string $key): ApiException
     {
         return new ApiException(

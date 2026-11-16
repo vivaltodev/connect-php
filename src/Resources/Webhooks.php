@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Vivalto\Connect\Resources;
 
+use InvalidArgumentException;
 use Vivalto\Connect\Client;
 use Vivalto\Connect\DTO\WebhookDeliveryPage;
 use Vivalto\Connect\DTO\WebhookEndpoint;
@@ -13,6 +14,13 @@ use Vivalto\Connect\DTO\WebhookEndpoint;
  */
 final class Webhooks
 {
+    /**
+     * The attributes PATCH /webhooks/{id} accepts.
+     *
+     * @var list<string>
+     */
+    private const UPDATABLE = ['url', 'events', 'description', 'is_active', 'api_key_id'];
+
     public function __construct(private readonly Client $client) {}
 
     /**
@@ -63,6 +71,52 @@ final class Webhooks
         }
 
         return $endpoints;
+    }
+
+    /**
+     * Update a webhook endpoint.
+     *
+     * Only the supplied attributes are sent. Pass null explicitly to clear
+     * the description or the API key binding. The signing secret cannot be
+     * changed; create a new endpoint to rotate it.
+     *
+     * Valid attributes are url, events, description, is_active and api_key_id.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function update(string $id, array $attributes): WebhookEndpoint
+    {
+        if ($attributes === []) {
+            throw new InvalidArgumentException(
+                'At least one attribute is required to update a webhook endpoint.',
+            );
+        }
+
+        $unknown = array_values(array_diff(array_keys($attributes), self::UPDATABLE));
+
+        if ($unknown !== []) {
+            throw new InvalidArgumentException(sprintf(
+                'Unknown webhook attribute(s): %s. Valid attributes are %s.',
+                implode(', ', $unknown),
+                implode(', ', self::UPDATABLE),
+            ));
+        }
+
+        return WebhookEndpoint::fromArray(
+            $this->client->request(
+                'PATCH',
+                '/api/v1/webhooks/'.rawurlencode($id),
+                $attributes,
+            ),
+        );
+    }
+
+    /**
+     * Delete a webhook endpoint and stop further deliveries.
+     */
+    public function delete(string $id): void
+    {
+        $this->client->request('DELETE', '/api/v1/webhooks/'.rawurlencode($id));
     }
 
     /**

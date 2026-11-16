@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Facade;
 use Vivalto\Connect\Client;
 
 /**
+ * @method static \Vivalto\Connect\DTO\Account me()
  * @method static \Vivalto\Connect\Resources\Messages messages()
  * @method static \Vivalto\Connect\Resources\Documents documents()
  * @method static \Vivalto\Connect\Resources\Webhooks webhooks()
+ * @method static \Vivalto\Connect\Resources\Pricing pricing()
+ * @method static \Vivalto\Connect\Resources\Search search()
+ * @method static \Vivalto\Connect\DTO\Health health()
  * @method static bool verifyWebhook(string $payload, string $header, string $secret, ?int $now = null, int $tolerance = 300)
  * @method static \Vivalto\Connect\Config config()
  *

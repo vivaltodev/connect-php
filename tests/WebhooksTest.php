@@ -130,3 +130,79 @@ it('rejects a webhook response without a url', function (): void {
             ->and($exception->getMessage())->toContain("'url'");
     }
 });
+
+it('updates a webhook endpoint with only the supplied attributes', function (): void {
+    $payload = webhookPayload(['is_active' => false, 'description' => null, 'secret' => null]);
+    $http = new FakeHttpClient(jsonResponse(200, $payload));
+
+    $endpoint = sdkClient($http)->webhooks()->update('whk_abc123', [
+        'is_active' => false,
+        'description' => null,
+    ]);
+
+    $request = $http->requests[0];
+
+    expect($request->getMethod())->toBe('PATCH')
+        ->and((string) $request->getUri())->toBe('https://api.example.test/api/v1/webhooks/whk_abc123')
+        ->and(json_decode((string) $request->getBody(), true))->toBe([
+            'is_active' => false,
+            'description' => null,
+        ]);
+
+    expect($endpoint)->toBeInstanceOf(WebhookEndpoint::class)
+        ->and($endpoint->id)->toBe('whk_abc123')
+        ->and($endpoint->isActive)->toBeFalse()
+        ->and($endpoint->description)->toBeNull()
+        ->and($endpoint->secret)->toBeNull();
+});
+
+it('replaces events and url on update', function (): void {
+    $http = new FakeHttpClient(jsonResponse(200, webhookPayload([
+        'url' => 'https://client.example.test/hooks/v2',
+        'events' => ['message.sent'],
+    ])));
+
+    sdkClient($http)->webhooks()->update('whk_abc123', [
+        'url' => 'https://client.example.test/hooks/v2',
+        'events' => ['message.sent'],
+    ]);
+
+    expect(json_decode((string) $http->requests[0]->getBody(), true))->toBe([
+        'url' => 'https://client.example.test/hooks/v2',
+        'events' => ['message.sent'],
+    ]);
+});
+
+it('rejects an unknown update attribute before sending anything', function (): void {
+    $http = new FakeHttpClient();
+
+    expect(fn () => sdkClient($http)->webhooks()->update('whk_abc123', ['sercet' => 'typo']))
+        ->toThrow(InvalidArgumentException::class, 'sercet')
+        ->and($http->requests)->toBe([]);
+});
+
+it('rejects an empty update', function (): void {
+    $http = new FakeHttpClient();
+
+    expect(fn () => sdkClient($http)->webhooks()->update('whk_abc123', []))
+        ->toThrow(InvalidArgumentException::class)
+        ->and($http->requests)->toBe([]);
+});
+
+it('deletes a webhook endpoint', function (): void {
+    $http = new FakeHttpClient(new GuzzleHttp\Psr7\Response(204));
+
+    sdkClient($http)->webhooks()->delete('whk_abc123');
+
+    $request = $http->requests[0];
+
+    expect($request->getMethod())->toBe('DELETE')
+        ->and((string) $request->getUri())->toBe('https://api.example.test/api/v1/webhooks/whk_abc123');
+});
+
+it('maps a missing webhook to a not found exception on delete', function (): void {
+    $http = new FakeHttpClient(jsonResponse(404, errorPayload('not_found', 'The webhook endpoint does not exist.')));
+
+    expect(fn () => sdkClient($http)->webhooks()->delete('whk_missing'))
+        ->toThrow(Vivalto\Connect\Exceptions\NotFoundException::class);
+});

@@ -13,6 +13,8 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamFactoryInterface;
+use Vivalto\Connect\DTO\Account;
+use Vivalto\Connect\DTO\Health;
 use Vivalto\Connect\DTO\RawResponse;
 use Vivalto\Connect\Exceptions\ApiException;
 use Vivalto\Connect\Exceptions\AuthenticationException;
@@ -23,6 +25,8 @@ use Vivalto\Connect\Exceptions\TransportException;
 use Vivalto\Connect\Exceptions\ValidationException;
 use Vivalto\Connect\Resources\Documents;
 use Vivalto\Connect\Resources\Messages;
+use Vivalto\Connect\Resources\Pricing;
+use Vivalto\Connect\Resources\Search;
 use Vivalto\Connect\Resources\Webhooks;
 
 /**
@@ -33,7 +37,7 @@ use Vivalto\Connect\Resources\Webhooks;
  */
 final class Client
 {
-    public const VERSION = '0.2.0';
+    public const VERSION = '0.3.0';
 
     private readonly ClientInterface $httpClient;
 
@@ -46,6 +50,10 @@ final class Client
     private ?Webhooks $webhooks = null;
 
     private ?Documents $documents = null;
+
+    private ?Pricing $pricing = null;
+
+    private ?Search $search = null;
 
     public function __construct(private readonly Config $config)
     {
@@ -64,6 +72,14 @@ final class Client
         return $this->config;
     }
 
+    /**
+     * Read the identity, scopes, products and limits of the API key.
+     */
+    public function me(): Account
+    {
+        return Account::fromArray($this->request('GET', '/api/v1/me'));
+    }
+
     public function messages(): Messages
     {
         return $this->messages ??= new Messages($this);
@@ -79,6 +95,16 @@ final class Client
         return $this->documents ??= new Documents($this);
     }
 
+    public function pricing(): Pricing
+    {
+        return $this->pricing ??= new Pricing($this);
+    }
+
+    public function search(): Search
+    {
+        return $this->search ??= new Search($this);
+    }
+
     /**
      * Verify the signature header on an incoming webhook.
      */
@@ -90,6 +116,29 @@ final class Client
         int $tolerance = WebhookSignature::DEFAULT_TOLERANCE,
     ): bool {
         return WebhookSignature::verify($payload, $header, $secret, $now, $tolerance);
+    }
+
+    /**
+     * Read the public health of the API.
+     *
+     * A degraded API answers 503; this method returns the reported checks
+     * instead of throwing, and it does not retry. Use isHealthy() and
+     * failedChecks() to decide what to do.
+     */
+    public function health(): Health
+    {
+        $response = $this->requestAllowingError('GET', '/api/v1/health');
+
+        try {
+            $data = json_decode($response->contents, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            throw new ApiException(
+                'The Vivalto Connect API returned invalid JSON.',
+                $response->status,
+            );
+        }
+
+        return Health::fromArray(is_array($data) ? $data : []);
     }
 
     /**
@@ -146,6 +195,35 @@ final class Client
     }
 
     /**
+     * Send one API request and return the response even when it is not 2xx.
+     *
+     * Used by health checks, where a 503 is a valid answer rather than an
+     * error. Nothing is retried.
+     *
+     * @param  array<string, mixed>|null  $body
+     * @param  array<string, string>  $headers
+     * @param  array<string, mixed>  $query
+     *
+     * @internal
+     */
+    public function requestAllowingError(
+        string $method,
+        string $path,
+        ?array $body = null,
+        array $headers = [],
+        array $query = [],
+    ): RawResponse {
+        $response = $this->send($method, $path, $body, $headers, $query, throwOnError: false);
+
+        return new RawResponse(
+            contents: (string) $response->getBody(),
+            contentType: $response->getHeaderLine('Content-Type'),
+            status: $response->getStatusCode(),
+            headers: $response->getHeaders(),
+        );
+    }
+
+    /**
      * @param  array<string, mixed>|null  $body
      * @param  array<string, string>  $headers
      * @param  array<string, mixed>  $query
@@ -156,6 +234,7 @@ final class Client
         ?array $body,
         array $headers,
         array $query,
+        bool $throwOnError = true,
     ): ResponseInterface {
         $attempt = 0;
 
@@ -174,6 +253,10 @@ final class Client
             $status = $response->getStatusCode();
 
             if ($status >= 200 && $status < 300) {
+                return $response;
+            }
+
+            if (! $throwOnError) {
                 return $response;
             }
 

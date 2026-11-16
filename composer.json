@@ -4,6 +4,11 @@
     "description": "PHP SDK for the Vivalto Connect API: SMS, PDF, images and webhooks",
     "type": "library",
     "license": "proprietary",
+    "homepage": "https://connect.vivalto.no/docs",
+    "support": {
+        "source": "https://github.com/vivaltodev/connect-php",
+        "docs": "https://connect.vivalto.no/docs"
+    },
     "keywords": [
         "sms",
         "pdf",
@@ -14,6 +19,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-json": "*",
         "guzzlehttp/guzzle": "^7.8",
         "guzzlehttp/psr7": "^2.6",
         "psr/http-client": "^1.0",
