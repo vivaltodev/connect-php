@@ -32,7 +32,7 @@ repository instead:
         }
     ],
     "require": {
-        "vivaltodev/connect-php": "^0.3"
+        "vivaltodev/connect-php": "^0.4"
     }
 }
 ```
@@ -412,6 +412,76 @@ The package includes an optional service provider and facade for frameworks
 that support package discovery. They are not required; the client works
 standalone with any PSR-18 implementation.
 
+In Laravel the provider is discovered automatically and binds `Client` as a
+singleton from `config/connect.php`. Publish the config when you want to edit
+it:
+
+```bash
+php artisan vendor:publish --tag=connect-config
+```
+
+| Variable | Purpose |
+| --- | --- |
+| `VIVALTO_CONNECT_API_KEY` | API key from the portal. Required. |
+| `VIVALTO_CONNECT_SENDER` | Default sender for the test SMS command. Must be approved for the customer. |
+| `VIVALTO_CONNECT_BASE_URL` | API base URL. Defaults to `https://connect.vivalto.no`. |
+| `VIVALTO_CONNECT_TIMEOUT` | Request timeout in seconds. Defaults to 30. |
+| `VIVALTO_CONNECT_RETRIES` | Retries for 429 and 5xx responses. Defaults to 3. |
+
+### Send a test SMS
+
+Install the package in a Laravel app and send a real message with the API key
+the app already uses:
+
+```bash
+php artisan connect:test-sms +4790000000
+```
+
+| Argument or option | Purpose |
+| --- | --- |
+| `to` | Recipient in E.164 format. Required. |
+| `--from=` | Approved sender. Falls back to `VIVALTO_CONNECT_SENDER`. |
+| `--text=` | Message body. Defaults to a timestamped test message. |
+| `--class=` | `standard` (default), `premium` or `secret`. |
+| `--reference=` | Optional reference stored on the message. |
+| `--wait=` | Seconds to poll for a final status. Needs the `messages:read` scope. `0` returns immediately. |
+
+The command prints the message id, status, part count and price. A failed
+request exits with `1` and prints the API error code, field errors and a hint
+for the codes that are easy to get wrong, such as `invalid_sender` and
+`invalid_recipient`. With `--wait` the command follows the status changes and
+exits with `1` when the message ends as `failed`, `expired` or `rejected`.
+
+```text
+The test SMS was accepted by the API.
+
++------------+---------------------------+
+| Field      | Value                     |
++------------+---------------------------+
+| ID         | msg_7f3k9m2p1q            |
+| Status     | queued                    |
+| To         | +4791234567               |
+| From       | VIVALTO                   |
+| Class      | standard                  |
+| Parts      | 1                         |
+| Price      | 0,45 NOK (estimated)      |
++------------+---------------------------+
+
+Use --wait=30 to follow the delivery status.
+```
+
+The command needs the `messages:send` scope, and `messages:read` when `--wait`
+is used because it reads the message back. An empty
+`VIVALTO_CONNECT_API_KEY` or a missing sender stops the command before any
+request is sent.
+
+```bash
+php artisan connect:test-sms +4790000000 --from=VIVALTO --wait=30
+```
+
+The default text includes the current time to the second, because the API
+returns the same message when an identical send repeats within 60 seconds.
+
 ## Development
 
 ```bash
@@ -422,7 +492,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.3.
+The package follows semantic versioning. The current release line is 0.4.
 
 ## License
 

@@ -1,8 +1,10 @@
 <?php
 
+use GuzzleHttp\Psr7\Response;
 use Vivalto\Connect\DTO\WebhookDeliveryPage;
 use Vivalto\Connect\DTO\WebhookEndpoint;
 use Vivalto\Connect\Exceptions\ApiException;
+use Vivalto\Connect\Exceptions\NotFoundException;
 use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 function webhookPayload(array $overrides = []): array
@@ -174,7 +176,7 @@ it('replaces events and url on update', function (): void {
 });
 
 it('rejects an unknown update attribute before sending anything', function (): void {
-    $http = new FakeHttpClient();
+    $http = new FakeHttpClient;
 
     expect(fn () => sdkClient($http)->webhooks()->update('whk_abc123', ['sercet' => 'typo']))
         ->toThrow(InvalidArgumentException::class, 'sercet')
@@ -182,7 +184,7 @@ it('rejects an unknown update attribute before sending anything', function (): v
 });
 
 it('rejects an empty update', function (): void {
-    $http = new FakeHttpClient();
+    $http = new FakeHttpClient;
 
     expect(fn () => sdkClient($http)->webhooks()->update('whk_abc123', []))
         ->toThrow(InvalidArgumentException::class)
@@ -190,7 +192,7 @@ it('rejects an empty update', function (): void {
 });
 
 it('deletes a webhook endpoint', function (): void {
-    $http = new FakeHttpClient(new GuzzleHttp\Psr7\Response(204));
+    $http = new FakeHttpClient(new Response(204));
 
     sdkClient($http)->webhooks()->delete('whk_abc123');
 
@@ -204,5 +206,5 @@ it('maps a missing webhook to a not found exception on delete', function (): voi
     $http = new FakeHttpClient(jsonResponse(404, errorPayload('not_found', 'The webhook endpoint does not exist.')));
 
     expect(fn () => sdkClient($http)->webhooks()->delete('whk_missing'))
-        ->toThrow(Vivalto\Connect\Exceptions\NotFoundException::class);
+        ->toThrow(NotFoundException::class);
 });

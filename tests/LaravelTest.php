@@ -10,7 +10,7 @@ it('ships a publishable config file with the expected keys', function (): void {
     $config = require __DIR__.'/../config/connect.php';
 
     expect($config)->toBeArray()
-        ->and($config)->toHaveKeys(['api_key', 'base_url', 'timeout', 'retries'])
+        ->and($config)->toHaveKeys(['api_key', 'sender', 'base_url', 'timeout', 'retries'])
         ->and($config['timeout'])->toBe(30)
         ->and($config['retries'])->toBe(3);
 });

@@ -8,6 +8,7 @@ use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\ServiceProvider;
 use Vivalto\Connect\Client;
 use Vivalto\Connect\Config;
+use Vivalto\Connect\Laravel\Commands\SendTestSmsCommand;
 
 /**
  * Optional Laravel integration.
@@ -36,7 +37,19 @@ final class VivaltoConnectServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../../config/connect.php' => $this->app->configPath('connect.php'),
             ], 'connect-config');
+
+            $this->commands(self::artisanCommands());
         }
+    }
+
+    /**
+     * The Artisan commands the package registers.
+     *
+     * @return list<class-string>
+     */
+    public static function artisanCommands(): array
+    {
+        return [SendTestSmsCommand::class];
     }
 
     /**

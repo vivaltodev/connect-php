@@ -3,6 +3,25 @@
 All notable changes to `vivaltodev/connect-php` are documented here. The
 format follows Keep a Changelog and the package uses semantic versioning.
 
+## 0.4.0 - 2026-11-18
+
+### Added
+
+- `connect:test-sms`, an Artisan command that sends a real test SMS with the
+  configured API key. It accepts any recipient, an optional `--from`,
+  `--text`, `--class` and `--reference`, prints the message id, status, parts
+  and price, and `--wait=N` follows the status until it is final. The command
+  exits with 1 when the request fails or the message ends as `failed`,
+  `expired` or `rejected`.
+- A `sender` key in `config/connect.php`, read from
+  `VIVALTO_CONNECT_SENDER`, used as the default sender for the command.
+- `illuminate/console` is suggested for Laravel apps that want the command.
+
+### Changed
+
+- The PHP SDK documentation and the API documentation on `/docs` describe the
+  test SMS command, its options, exit codes and the scopes it needs.
+
 ## 0.3.0 - 2026-11-16
 
 ### Added

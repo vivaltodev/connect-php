@@ -3,6 +3,7 @@
 use Vivalto\Connect\DTO\SearchStatus;
 use Vivalto\Connect\DTO\SearchToken;
 use Vivalto\Connect\DTO\SearchUsage;
+use Vivalto\Connect\Exceptions\ApiException;
 use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 function searchStatusPayload(array $overrides = []): array
@@ -189,5 +190,5 @@ it('surfaces a provisioning conflict as an api exception', function (): void {
     )));
 
     expect(fn () => sdkClient($http)->search()->token())
-        ->toThrow(Vivalto\Connect\Exceptions\ApiException::class);
+        ->toThrow(ApiException::class);
 });

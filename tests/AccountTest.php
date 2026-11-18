@@ -1,6 +1,7 @@
 <?php
 
 use Vivalto\Connect\DTO\Account;
+use Vivalto\Connect\Exceptions\ApiException;
 use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
 it('reads the identity and limits of the api key', function (): void {
@@ -91,5 +92,5 @@ it('rejects a me response without a key block', function (): void {
     ]));
 
     expect(fn () => sdkClient($http)->me())
-        ->toThrow(Vivalto\Connect\Exceptions\ApiException::class, "missing the required field 'key'");
+        ->toThrow(ApiException::class, "missing the required field 'key'");
 });

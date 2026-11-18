@@ -11,5 +11,5 @@ it('identifies itself with the package version in the user agent', function (): 
 
     expect($http->requests[0]->getHeaderLine('User-Agent'))
         ->toBe('vivalto-connect-php/'.Client::VERSION)
-        ->and(Client::VERSION)->toBe('0.3.0');
+        ->and(Client::VERSION)->toBe('0.4.0');
 });
