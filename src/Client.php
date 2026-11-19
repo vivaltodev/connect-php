@@ -37,7 +37,7 @@ use Vivalto\Connect\Resources\Webhooks;
  */
 final class Client
 {
-    public const VERSION = '0.5.0';
+    public const VERSION = '0.6.0';
 
     private readonly ClientInterface $httpClient;
 

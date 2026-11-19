@@ -38,7 +38,7 @@
         "vlucas/phpdotenv": "^5.8"
     },
     "suggest": {
-        "illuminate/console": "Required for the connect:test-sms Artisan command.",
+        "illuminate/console": "Required for the connect:verify, connect:test-sms and connect:test-pdf Artisan commands.",
         "illuminate/http": "Replaces the transport with Laravel's HTTP client so Http::fake() intercepts SDK requests.",
         "illuminate/support": "Required for the optional service provider and facade.",
         "phpunit/phpunit": "Required by the assertions on Vivalto\\Connect\\Testing\\FakeClient. Pest installs it too."

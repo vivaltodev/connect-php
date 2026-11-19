@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Vivalto\Connect\Laravel\Commands;
 
-use Illuminate\Console\Command;
 use Illuminate\Contracts\Config\Repository;
 use Illuminate\Support\Carbon;
-use InvalidArgumentException;
 use Vivalto\Connect\Client;
 use Vivalto\Connect\DTO\Message;
 use Vivalto\Connect\Exceptions\ApiException;
-use Vivalto\Connect\Exceptions\RateLimitException;
-use Vivalto\Connect\Exceptions\ValidationException;
 
 /**
  * Send a real test SMS through the Vivalto Connect API.
@@ -20,7 +16,7 @@ use Vivalto\Connect\Exceptions\ValidationException;
  * The command uses the client that the service provider registers, so it
  * sends with the API key, base URL and retry settings from config/connect.php.
  */
-final class SendTestSmsCommand extends Command
+final class SendTestSmsCommand extends ConnectCommand
 {
     /**
      * Statuses that will not change again.
@@ -150,25 +146,6 @@ final class SendTestSmsCommand extends Command
     }
 
     /**
-     * Resolve the client from the container and explain a broken config.
-     */
-    private function resolveClient(): ?Client
-    {
-        try {
-            /** @var Client $client */
-            $client = $this->laravel->make(Client::class);
-        } catch (InvalidArgumentException $exception) {
-            $this->error('The Vivalto Connect client is not configured.');
-            $this->line('  '.$exception->getMessage());
-            $this->line('Set VIVALTO_CONNECT_API_KEY in .env, then run config:clear.');
-
-            return null;
-        }
-
-        return $client;
-    }
-
-    /**
      * Use --from, then the configured sender.
      */
     private function resolveSender(Repository $config): ?string
@@ -283,25 +260,7 @@ final class SendTestSmsCommand extends Command
     private function reportFailure(ApiException $exception): int
     {
         $this->error('The test SMS was not sent.');
-        $this->line('  '.$exception->getMessage());
-
-        if ($exception->errorCode !== null) {
-            $this->line('  Code: '.$exception->errorCode);
-        }
-
-        if ($exception instanceof ValidationException) {
-            foreach ($exception->errors() as $field => $messages) {
-                foreach (is_array($messages) ? $messages : [$messages] as $message) {
-                    if (is_string($message)) {
-                        $this->line(sprintf('  %s: %s', $field, $message));
-                    }
-                }
-            }
-        }
-
-        if ($exception instanceof RateLimitException && $exception->retryAfter !== null) {
-            $this->line(sprintf('  Retry after %d seconds.', $exception->retryAfter));
-        }
+        $this->reportApiException($exception);
 
         $hint = $this->hintFor($exception->errorCode);
 
@@ -327,12 +286,5 @@ final class SendTestSmsCommand extends Command
             .' '.$message->price->currency;
 
         return $message->price->estimated ? $price.' (estimated)' : $price;
-    }
-
-    private function stringOption(string $name): string
-    {
-        $value = $this->option($name);
-
-        return is_string($value) ? trim($value) : '';
     }
 }

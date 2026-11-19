@@ -81,6 +81,41 @@ function errorPayload(string $code, string $message, ?array $details = null): ar
 }
 
 /**
+ * An account payload shaped like the API v1 MeController response.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function accountPayload(array $overrides = []): array
+{
+    return array_merge([
+        'key' => [
+            'id' => 'key_abc123',
+            'name' => 'Production',
+            'prefix' => 'sk_live_ab',
+            'scopes' => ['messages:send', 'messages:read', 'documents:render', 'documents:read'],
+            'sandbox' => false,
+        ],
+        'customer' => [
+            'id' => 'cus_abc123',
+            'name' => 'Infografikk',
+        ],
+        'project' => [
+            'id' => 'prj_abc123',
+            'name' => 'Tradein',
+            'default_region' => 'NO',
+        ],
+        'products' => [
+            ['key' => 'sms', 'name' => 'SMS', 'unit' => 'message'],
+            ['key' => 'documents', 'name' => 'Documents', 'unit' => 'document'],
+        ],
+        'rate_limit_per_minute' => 60,
+        'default_region' => 'NO',
+        'sandbox' => false,
+    ], $overrides);
+}
+
+/**
  * A paginated envelope with the given items and meta overrides.
  *
  * @param  array<int, array<string, mixed>>  $items

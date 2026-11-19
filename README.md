@@ -3,7 +3,9 @@
 PHP client for the Vivalto Connect API v1. It sends SMS, renders HTML to PDF
 or images, reads message and document history, manages webhook endpoints,
 verifies incoming webhook signatures, reads account limits and prices, and
-handles hosted Meilisearch status, usage and tenant tokens.
+handles hosted Meilisearch status, usage and tenant tokens. Laravel apps also
+get Artisan commands that verify the API key and scopes, send a test SMS and
+render a test PDF.
 
 - API documentation: https://connect.vivalto.no/docs
 - PHP 8.2 or newer
@@ -32,7 +34,7 @@ repository instead:
         }
     ],
     "require": {
-        "vivaltodev/connect-php": "^0.5"
+        "vivaltodev/connect-php": "^0.6"
     }
 }
 ```
@@ -428,10 +430,46 @@ php artisan vendor:publish --tag=connect-config
 | `VIVALTO_CONNECT_TIMEOUT` | Request timeout in seconds. Defaults to 30. |
 | `VIVALTO_CONNECT_RETRIES` | Retries for 429 and 5xx responses. Defaults to 3. |
 
-### Send a test SMS
+### Verify the integration from Artisan
 
-Install the package in a Laravel app and send a real message with the API key
-the app already uses:
+Laravel package discovery registers three commands. They use the same API key,
+base URL and retry settings as the application, so a successful run proves that
+`.env`, the network path and the key all work before the SDK is wired into a
+job.
+
+| Command | What it proves | Side effect |
+| --- | --- | --- |
+| `connect:verify` | The key authenticates and carries the scopes and products you ask for. | No |
+| `connect:test-sms` | A real SMS is accepted, and optionally delivered. | Sends an SMS |
+| `connect:test-pdf` | The renderer returns a real PDF, PNG or JPEG. | Writes a file |
+
+#### connect:verify
+
+```bash
+php artisan connect:verify
+php artisan connect:verify --need=messages:send --need=documents:render
+php artisan connect:verify --product=sms --product=documents
+php artisan connect:verify --json
+```
+
+The command calls `GET /api/v1/me` and prints the key name, prefix, customer,
+project, default region, rate limit, scopes and products. It exits with `1` when
+the key is rejected, when a `--need` scope is missing, when a `--product` is not
+available or when the key has no scopes at all. It also warns about pairs that
+are easy to get wrong, such as `messages:send` without `messages:read`, and
+about sandbox keys.
+
+| Option | Purpose |
+| --- | --- |
+| `--need=` | Scope the key must have. Repeat for several scopes. |
+| `--product=` | Product the key must have access to: `sms`, `documents`, `search`, `webhooks` or `pricing`. |
+| `--json` | Print the account and the checks as JSON, still with exit code `1` on a failed check. |
+
+`connect:test-auth` is an alias for `connect:verify`.
+
+#### connect:test-sms
+
+Send a real message with the API key the app already uses:
 
 ```bash
 php artisan connect:test-sms +4790000000
@@ -481,6 +519,31 @@ php artisan connect:test-sms +4790000000 --from=VIVALTO --wait=30
 
 The default text includes the current time to the second, because the API
 returns the same message when an identical send repeats within 60 seconds.
+
+#### connect:test-pdf
+
+Render a real document and check that the bytes match the requested type:
+
+```bash
+php artisan connect:test-pdf
+php artisan connect:test-pdf --type=png
+php artisan connect:test-pdf --html-file=resources/pdf/invoice.html --path=/tmp/invoice.pdf
+php artisan connect:test-pdf --format=A4 --landscape
+```
+
+| Option | Purpose |
+| --- | --- |
+| `--type=` | `pdf` (default), `png` or `jpeg`. |
+| `--path=` | Where to write the file. Defaults to `storage/app/connect-test-<time>.<ext>`. |
+| `--html-file=` | Render this file instead of the built-in sample page. |
+| `--format=` | Paper size passed to the renderer. Defaults to `A4`. |
+| `--landscape` | Render in landscape orientation. |
+
+The command needs the `documents:render` scope. It exits with `1` when the API
+rejects the request, when the MIME type does not match the requested type, when
+the bytes are not a valid PDF, PNG or JPEG, or when the file cannot be written.
+The sample page is plain HTML with inline CSS, so a successful run proves the
+renderer works without depending on the customer's markup.
 
 ## Testing
 
@@ -589,7 +652,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.5.
+The package follows semantic versioning. The current release line is 0.6.
 
 ## License
 

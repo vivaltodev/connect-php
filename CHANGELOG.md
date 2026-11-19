@@ -3,6 +3,29 @@
 All notable changes to `vivaltodev/connect-php` are documented here. The
 format follows Keep a Changelog and the package uses semantic versioning.
 
+## 0.6.0 - 2026-11-19
+
+### Added
+
+- `connect:verify`, a read-only Artisan command that calls `GET /api/v1/me`
+  and prints the key name, prefix, customer, project, region, rate limit,
+  scopes and products. `--need=` requires a scope, `--product=` requires
+  access to a product, and `--json` prints the account and the checks as
+  JSON. It exits with 1 when the key is rejected, a required scope or product
+  is missing, or the key has no scopes, and warns about scope pairs that are
+  easy to get wrong and about sandbox keys. `connect:test-auth` is an alias.
+- `connect:test-pdf`, an Artisan command that renders a real PDF, PNG or JPEG
+  with the configured API key, verifies the MIME type and file signature, and
+  writes the file to `--path` or `storage/app/`. `--html-file=` renders
+  customer markup instead of the built-in sample page.
+- `ConnectCommand`, the shared base class for the Artisan commands, so every
+  command resolves the client and prints API errors the same way.
+
+### Changed
+
+- `connect:test-sms` now extends the shared base class. Its output and exit
+  codes are unchanged.
+
 ## 0.5.0 - 2026-11-19
 
 ### Added

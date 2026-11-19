@@ -13,6 +13,8 @@ use Psr\Http\Client\ClientInterface;
 use Vivalto\Connect\Client;
 use Vivalto\Connect\Config;
 use Vivalto\Connect\Laravel\Commands\SendTestSmsCommand;
+use Vivalto\Connect\Laravel\Commands\TestPdfCommand;
+use Vivalto\Connect\Laravel\Commands\VerifyCommand;
 
 /**
  * Optional Laravel integration.
@@ -54,7 +56,11 @@ final class VivaltoConnectServiceProvider extends ServiceProvider
      */
     public static function artisanCommands(): array
     {
-        return [SendTestSmsCommand::class];
+        return [
+            VerifyCommand::class,
+            SendTestSmsCommand::class,
+            TestPdfCommand::class,
+        ];
     }
 
     /**
