@@ -33,7 +33,7 @@ final class TestPdfCommand extends ConnectCommand
      */
     private const HINTS = [
         'forbidden' => 'The API key needs the documents:render scope. Edit the key in the portal: Projects, the project, API keys.',
-        'too_many_renders' => 'All render slots are busy. Retry in a moment, or raise the render limit for the project.',
+        'too_many_renders' => 'All render slots stayed busy. Retry with a backoff, or render with async so Connect can queue the document.',
         'document_not_ready' => 'The render did not finish. Retry, and check the system check page if it repeats.',
     ];
 

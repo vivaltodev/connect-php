@@ -37,7 +37,7 @@ use Vivalto\Connect\Resources\Webhooks;
  */
 final class Client
 {
-    public const VERSION = '0.6.0';
+    public const VERSION = '0.7.0';
 
     private readonly ClientInterface $httpClient;
 
@@ -263,7 +263,7 @@ final class Client
             $retryable = $status === 429 || $status >= 500;
 
             if ($retryable && $attempt < $this->config->retries) {
-                $this->sleepBeforeRetry($attempt);
+                $this->sleepBeforeRetry($attempt, $response);
                 $attempt++;
 
                 continue;
@@ -391,10 +391,25 @@ final class Client
     }
 
     /**
-     * Sleep 100ms, 200ms, 400ms and so on, plus up to 100ms of jitter.
+     * Wait before the next attempt.
+     *
+     * A Retry-After header wins over the exponential backoff, because the API
+     * uses it to tell how long a render slot stays busy. The delay is capped
+     * by Config::$maxRetryDelay so a large header cannot stall a worker.
      */
-    private function sleepBeforeRetry(int $attempt): void
+    private function sleepBeforeRetry(int $attempt, ResponseInterface $response): void
     {
+        $retryAfter = $this->retryAfter($response);
+
+        if ($retryAfter !== null) {
+            $seconds = min($retryAfter, $this->config->maxRetryDelay);
+
+            usleep($seconds * 1_000_000 + random_int(0, 100_000));
+
+            return;
+        }
+
+        // Sleep 100ms, 200ms, 400ms and so on, plus up to 100ms of jitter.
         $backoff = 100 * (2 ** $attempt);
         $jitter = random_int(0, 100);
 

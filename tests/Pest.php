@@ -8,7 +8,7 @@ use Vivalto\Connect\Tests\Support\FakeHttpClient;
 /**
  * Build a client wired to the fake PSR-18 transport.
  */
-function sdkClient(FakeHttpClient $http, int $retries = 0, string $baseUrl = 'https://api.example.test'): Client
+function sdkClient(FakeHttpClient $http, int $retries = 0, string $baseUrl = 'https://api.example.test', int $maxRetryDelay = 30): Client
 {
     return new Client(new Config(
         baseUrl: $baseUrl,
@@ -16,6 +16,7 @@ function sdkClient(FakeHttpClient $http, int $retries = 0, string $baseUrl = 'ht
         timeout: 5,
         retries: $retries,
         httpClient: $http,
+        maxRetryDelay: $maxRetryDelay,
     ));
 }
 

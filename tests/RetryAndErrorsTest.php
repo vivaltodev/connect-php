@@ -62,6 +62,52 @@ it('throws a server exception after the final 5xx attempt', function (): void {
     expect($http->requests)->toHaveCount(2);
 });
 
+it('waits for retry-after before it retries a busy renderer', function (): void {
+    $http = new FakeHttpClient(
+        new Response(
+            429,
+            [
+                'Content-Type' => 'application/json',
+                'Retry-After' => '1',
+            ],
+            json_encode(
+                errorPayload('render_busy', 'All render slots are busy. No slot became free within the 10 second wait window (2 slots in use).'),
+                JSON_THROW_ON_ERROR,
+            ),
+        ),
+        binaryResponse(200, '%PDF-1.4 fake', 'application/pdf'),
+    );
+    $client = sdkClient($http, retries: 1);
+
+    $started = microtime(true);
+    $result = $client->documents()->render('<h1>Hei</h1>');
+    $waited = microtime(true) - $started;
+
+    expect($result->isPdf())->toBeTrue()
+        ->and($http->requests)->toHaveCount(2)
+        ->and($waited)->toBeGreaterThanOrEqual(0.95);
+});
+
+it('caps the retry-after delay at the configured maximum', function (): void {
+    $http = new FakeHttpClient(
+        new Response(
+            429,
+            ['Content-Type' => 'application/json', 'Retry-After' => '600'],
+            json_encode(errorPayload('rate_limited', 'For mange forespørsler.'), JSON_THROW_ON_ERROR),
+        ),
+        jsonResponse(200, ['data' => []]),
+    );
+    $client = sdkClient($http, retries: 1, maxRetryDelay: 1);
+
+    $started = microtime(true);
+    $client->messages()->list();
+    $waited = microtime(true) - $started;
+
+    expect($http->requests)->toHaveCount(2)
+        ->and($waited)->toBeGreaterThanOrEqual(0.95)
+        ->and($waited)->toBeLessThan(5.0);
+});
+
 it('exposes retry-after on a rate limit exception', function (): void {
     $http = new FakeHttpClient(new Response(
         429,

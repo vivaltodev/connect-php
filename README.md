@@ -184,19 +184,30 @@ file_put_contents('bilde.png', $result->contents);
 
 ### Asynchronous rendering
 
+Synchronous rendering answers the request with the file. For batches, cron
+jobs and anything that must not hold a web worker, queue the render instead:
+
 ```php
 $document = $client->documents()->create(
     html: '<h1>Stor rapport</h1>',
     options: ['format' => 'A4'],
 );
 
-// Poll until the document is completed.
-$document = $client->documents()->get($document->id);
+// Poll until the document is completed or failed.
+$document = $client->documents()->wait($document->id, timeoutSeconds: 120);
 
-if ($document->isCompleted()) {
-    $pdf = $client->documents()->download($document->downloadUrl);
-}
+$pdf = $client->documents()->download($document->downloadUrl);
 ```
+
+`wait()` polls `GET /api/v1/documents/{id}` every second until the render is
+completed. It throws `DocumentFailedException` with the reason stored by the
+API when the render failed, and `DocumentTimeoutException` when the deadline
+passes while the document is still queued or rendering. Poll manually with
+`get()` when you would rather control the loop yourself.
+
+A queued render waits for a free Chrome slot on the API side. When no slot
+frees up within the server's wait window, the job fails and the reason is
+stored on the document, so `DocumentFailedException` explains what happened.
 
 ### List documents
 
@@ -379,9 +390,12 @@ try {
 
 ## Retries
 
-The client retries 429 and 5xx responses up to `retries` times, with
-exponential backoff (100ms, 200ms, 400ms, and so on) plus up to 100ms of
-jitter. Other 4xx responses are never retried. The `Idempotency-Key` header is
+The client retries 429 and 5xx responses up to `retries` times. A 429 with a
+`Retry-After` header waits exactly as long as the API asks, capped by
+`maxRetryDelay` (30 seconds by default), because Connect uses that header to
+say how long every render slot stays busy. Without the header the client backs
+off exponentially: 100ms, 200ms, 400ms, and so on, plus up to 100ms of jitter.
+Other 4xx responses are never retried. The `Idempotency-Key` header is
 identical on every attempt, so a retry cannot create a duplicate message.
 
 ```php
@@ -390,8 +404,13 @@ $client = new Client(new Config(
     apiKey: $apiKey,
     timeout: 30,
     retries: 3,
+    maxRetryDelay: 30,
 ));
 ```
+
+A render that still answers 429 after the retries is a genuine capacity
+problem: `RateLimitException` carries `errorCode = render_busy` and
+`retryAfter`. Queue the render instead of raising the retry count.
 
 ## Custom PSR-18 client
 
@@ -652,7 +671,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.6.
+The package follows semantic versioning. The current release line is 0.7.
 
 ## License
 

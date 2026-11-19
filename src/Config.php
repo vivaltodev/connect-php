@@ -25,7 +25,11 @@ final readonly class Config
         public ?ClientInterface $httpClient = null,
         public ?RequestFactoryInterface $requestFactory = null,
         public ?StreamFactoryInterface $streamFactory = null,
+        public int $maxRetryDelay = 30,
     ) {
+        if ($this->maxRetryDelay < 1) {
+            throw new InvalidArgumentException('The Vivalto Connect maximum retry delay must be at least one second.');
+        }
         if (trim($this->baseUrl) === '') {
             throw new InvalidArgumentException('The Vivalto Connect base URL cannot be empty.');
         }

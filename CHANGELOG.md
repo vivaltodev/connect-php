@@ -3,6 +3,25 @@
 All notable changes to `vivaltodev/connect-php` are documented here. The
 format follows Keep a Changelog and the package uses semantic versioning.
 
+## 0.7.0 - 2026-11-19
+
+### Added
+
+- `Documents::wait()`, which polls an asynchronous render until it is
+  completed and returns the document with its signed download link. It throws
+  `DocumentFailedException` with the reason stored by the API when the render
+  failed, and `DocumentTimeoutException` when the deadline passes while the
+  document is still queued or rendering.
+- `Config::$maxRetryDelay` (30 seconds by default), the ceiling for a
+  `Retry-After` delay.
+
+### Changed
+
+- A 429 that carries `Retry-After` now waits that long before the next
+  attempt, instead of the 100ms exponential backoff. Connect uses the header
+  to say how long every render slot stays busy, so a render that arrives
+  while the slots are full is retried instead of failing.
+
 ## 0.6.0 - 2026-11-19
 
 ### Added

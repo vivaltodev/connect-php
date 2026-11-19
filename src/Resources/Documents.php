@@ -8,6 +8,8 @@ use Vivalto\Connect\Client;
 use Vivalto\Connect\DTO\Document;
 use Vivalto\Connect\DTO\DocumentPage;
 use Vivalto\Connect\DTO\DocumentResult;
+use Vivalto\Connect\Exceptions\DocumentFailedException;
+use Vivalto\Connect\Exceptions\DocumentTimeoutException;
 
 /**
  * Render HTML to PDF or an image, and read the document history.
@@ -23,6 +25,10 @@ final class Documents
 
     /**
      * Render HTML and return the binary document.
+     *
+     * A 429 with error code render_busy means every render slot stayed busy
+     * for the API's whole wait window. The client retries it like any other
+     * 429 and honours the Retry-After header.
      *
      * Supported options are type, format, paper_size, orientation, margins,
      * transparent_background, scale, window_size, image_quality, full_page
@@ -85,6 +91,48 @@ final class Documents
         $data = $response['data'] ?? $response;
 
         return Document::fromArray(is_array($data) ? $data : []);
+    }
+
+    /**
+     * Poll one document until it is completed or failed.
+     *
+     * Returns the completed document with a signed download link, which can
+     * be passed to download(). Throws DocumentFailedException with the
+     * reason stored by the API when the render failed, and
+     * DocumentTimeoutException when the deadline passes while it is still
+     * queued or rendering.
+     */
+    public function wait(string $id, int $timeoutSeconds = 120, int $intervalMs = 1000): Document
+    {
+        if ($timeoutSeconds < 1) {
+            throw new \InvalidArgumentException('The wait timeout must be at least one second.');
+        }
+
+        if ($intervalMs < 1) {
+            throw new \InvalidArgumentException('The poll interval must be at least one millisecond.');
+        }
+
+        $deadline = microtime(true) + $timeoutSeconds;
+
+        while (true) {
+            $document = $this->get($id);
+
+            if ($document->isCompleted()) {
+                return $document;
+            }
+
+            if ($document->isFailed()) {
+                throw new DocumentFailedException($document->id, $document->error);
+            }
+
+            $remaining = $deadline - microtime(true);
+
+            if ($remaining <= 0) {
+                throw new DocumentTimeoutException($document->id, $timeoutSeconds, $document->status);
+            }
+
+            usleep((int) (min($intervalMs / 1000, $remaining) * 1_000_000));
+        }
     }
 
     /**

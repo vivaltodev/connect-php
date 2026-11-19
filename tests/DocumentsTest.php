@@ -3,6 +3,8 @@
 use Vivalto\Connect\DTO\Document;
 use Vivalto\Connect\DTO\DocumentPage;
 use Vivalto\Connect\DTO\DocumentResult;
+use Vivalto\Connect\Exceptions\DocumentFailedException;
+use Vivalto\Connect\Exceptions\DocumentTimeoutException;
 use Vivalto\Connect\Exceptions\ValidationException;
 use Vivalto\Connect\Tests\Support\FakeHttpClient;
 
@@ -122,6 +124,72 @@ it('gets a document from the data envelope', function (): void {
         ->and($document->bytes)->toBe(1234)
         ->and($document->downloadUrl)->toContain('signature=abc')
         ->and($document->isCompleted())->toBeTrue();
+});
+
+it('waits for an asynchronous render and returns the completed document', function (): void {
+    $http = new FakeHttpClient(
+        jsonResponse(202, ['data' => documentPayload(['status' => 'queued', 'completed_at' => null, 'bytes' => null])]),
+        jsonResponse(200, ['data' => documentPayload(['status' => 'rendering', 'completed_at' => null, 'bytes' => null])]),
+        jsonResponse(200, ['data' => documentPayload()]),
+    );
+    $client = sdkClient($http);
+
+    $document = $client->documents()->wait('doc_abc123', 5, 10);
+
+    expect($document->isCompleted())->toBeTrue()
+        ->and($document->downloadUrl)->toContain('signature=abc')
+        ->and($http->requests)->toHaveCount(3);
+});
+
+it('throws the stored reason when an asynchronous render failed', function (): void {
+    $reason = 'All render slots are busy. No slot became free within the 30 second wait window (2 slots in use).';
+
+    $http = new FakeHttpClient(jsonResponse(200, ['data' => documentPayload([
+        'status' => 'failed',
+        'completed_at' => null,
+        'bytes' => null,
+        'error' => $reason,
+        'links' => ['self' => 'https://api.example.test/api/v1/documents/doc_abc123', 'download' => null],
+    ])]));
+    $client = sdkClient($http);
+
+    try {
+        $client->documents()->wait('doc_abc123', 5, 10);
+        $this->fail('Expected a DocumentFailedException.');
+    } catch (DocumentFailedException $exception) {
+        expect($exception->documentId)->toBe('doc_abc123')
+            ->and($exception->apiError)->toBe($reason)
+            ->and($exception->getMessage())->toBe($reason);
+    }
+
+    expect($http->requests)->toHaveCount(1);
+});
+
+it('gives up waiting when the deadline passes', function (): void {
+    $queued = jsonResponse(200, ['data' => documentPayload([
+        'status' => 'queued',
+        'completed_at' => null,
+        'bytes' => null,
+    ])]);
+
+    $http = new FakeHttpClient(...array_fill(0, 30, $queued));
+    $client = sdkClient($http);
+
+    try {
+        $client->documents()->wait('doc_abc123', 1, 100);
+        $this->fail('Expected a DocumentTimeoutException.');
+    } catch (DocumentTimeoutException $exception) {
+        expect($exception->documentId)->toBe('doc_abc123')
+            ->and($exception->timeoutSeconds)->toBe(1)
+            ->and($exception->documentStatus)->toBe('queued');
+    }
+});
+
+it('rejects an invalid wait timeout', function (): void {
+    $client = sdkClient(new FakeHttpClient);
+
+    expect(fn () => $client->documents()->wait('doc_abc123', 0))
+        ->toThrow(InvalidArgumentException::class);
 });
 
 it('lists documents with filters', function (): void {
