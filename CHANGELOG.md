@@ -3,6 +3,36 @@
 All notable changes to `vivaltodev/connect-php` are documented here. The
 format follows Keep a Changelog and the package uses semantic versioning.
 
+## 0.5.0 - 2026-11-19
+
+### Added
+
+- Laravel applications use `Illuminate\Http\Client\Factory` as the transport
+  automatically. `Http::fake()`, `Http::fakeSequence()`, `Http::assertSent()`,
+  `Http::assertSentCount()`, `Http::recorded()` and
+  `Http::preventStrayRequests()` now intercept every SDK request without
+  extra setup. JSON request bodies are attached as data, so assertions can
+  read `$request['field']` instead of the raw string.
+- `Vivalto\Connect\Laravel\HttpClient`, a PSR-18 transport over Laravel's
+  HTTP client for applications that wire the transport themselves.
+- `Vivalto\Connect\Testing\FakeClient`, a framework independent PSR-18 fake
+  with ordered responses, endpoint responders (`on()`), queueing of raw
+  responses and throwables, request recording and the assertions
+  `assertSent()`, `assertNotSent()`, `assertSentTo()`, `assertNothingSent()`
+  and `assertSentCount()`.
+- `VivaltoConnect::fake()`, which swaps the container binding for a
+  `FakeClient` and returns it, in the style of `Mail::fake()`.
+- A `http_client` key in `config/connect.php` that accepts a PSR-18 class
+  name or instance. Laravel's HTTP client is used when the key is null.
+- `illuminate/http` is suggested and listed as a development dependency.
+
+### Changed
+
+- `VivaltoConnectServiceProvider::makeClient()` accepts an optional
+  `ClientInterface` transport as its second argument.
+- The README and the API documentation describe testing with `Http::fake()`,
+  `VivaltoConnect::fake()` and `FakeClient`.
+
 ## 0.4.0 - 2026-11-18
 
 ### Added

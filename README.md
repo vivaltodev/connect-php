@@ -32,7 +32,7 @@ repository instead:
         }
     ],
     "require": {
-        "vivaltodev/connect-php": "^0.4"
+        "vivaltodev/connect-php": "^0.5"
     }
 }
 ```
@@ -482,6 +482,103 @@ php artisan connect:test-sms +4790000000 --from=VIVALTO --wait=30
 The default text includes the current time to the second, because the API
 returns the same message when an identical send repeats within 60 seconds.
 
+## Testing
+
+### Laravel: Http::fake()
+
+When `illuminate/http` is installed the service provider routes every SDK
+request through Laravel's HTTP client. That makes `Http::fake()` and the other
+HTTP test helpers intercept SDK calls without extra setup:
+
+```php
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
+use Vivalto\Connect\Laravel\Facades\VivaltoConnect;
+
+Http::fake([
+    'connect.vivalto.no/*' => Http::response([
+        'id' => 'msg_test',
+        'status' => 'queued',
+        'to' => '+4790000000',
+        'from' => 'VIVALTO',
+        'class' => 'standard',
+        'parts' => 1,
+    ], 201),
+]);
+
+VivaltoConnect::messages()->send(
+    to: '+4790000000',
+    from: 'VIVALTO',
+    text: 'Hei',
+);
+
+Http::assertSent(function (Request $request): bool {
+    return $request->url() === 'https://connect.vivalto.no/api/v1/messages'
+        && $request['to'] === '+4790000000';
+});
+```
+
+`Http::fakeSequence()`, `Http::assertSentCount()`, `Http::recorded()` and
+`Http::preventStrayRequests()` work the same way. JSON bodies are attached as
+data, so `$request['to']` reads the field instead of the raw string.
+
+The SDK retries 429 and 5xx responses. A test that expects a server error
+should set `config(['connect.retries' => 0])` to keep the request count
+predictable, or queue one response per attempt with `Http::fakeSequence()`.
+
+### Laravel: VivaltoConnect::fake()
+
+When the application injects `Client` instead of using the facade, replace the
+binding with a fake transport:
+
+```php
+$fake = VivaltoConnect::fake([
+    'POST /api/v1/messages' => ['id' => 'msg_test', 'status' => 'queued'],
+]);
+
+$message = VivaltoConnect::messages()->send(
+    to: '+4790000000',
+    from: 'VIVALTO',
+    text: 'Hei',
+);
+
+$fake->assertSentTo('POST', '/api/v1/messages');
+$fake->assertSentCount(1);
+$fake->assertNothingSent();
+```
+
+Keys are written as `METHOD /path`. Values are a JSON body array, a raw body
+string, a PSR-7 response or a throwable. A request without a matching fake
+throws instead of reaching the network.
+
+### Without Laravel
+
+Inject `Vivalto\Connect\Testing\FakeClient` through `Config` and use the same
+assertions:
+
+```php
+use Vivalto\Connect\Client;
+use Vivalto\Connect\Config;
+use Vivalto\Connect\Testing\FakeClient;
+
+$fake = (new FakeClient)->json($messagePayload, 201);
+
+$client = new Client(new Config(
+    baseUrl: 'https://connect.vivalto.no',
+    apiKey: 'test-key',
+    httpClient: $fake,
+));
+
+$client->messages()->send(to: '+4790000000', from: 'VIVALTO', text: 'Hei');
+
+$fake->assertSentTo('POST', '/api/v1/messages');
+```
+
+`FakeClient` also has `on()` for endpoint specific answers, `queue()` for raw
+PSR-7 responses or throwables, and `requests()`, `sent()` and `lastRequest()`
+for direct inspection. Use `Vivalto\Connect\Laravel\HttpClient` directly when
+you want Laravel's transport without the service provider.
+
 ## Development
 
 ```bash
@@ -492,7 +589,7 @@ composer analyse
 
 ## Versioning
 
-The package follows semantic versioning. The current release line is 0.4.
+The package follows semantic versioning. The current release line is 0.5.
 
 ## License
 

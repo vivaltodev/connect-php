@@ -30,6 +30,7 @@
         "illuminate/config": "^11.0 || ^12.0",
         "illuminate/console": "^11.0 || ^12.0",
         "illuminate/container": "^11.0 || ^12.0",
+        "illuminate/http": "^11.0 || ^12.0",
         "illuminate/support": "^11.0 || ^12.0",
         "pestphp/pest": "^3.0",
         "phpoption/phpoption": "^1.10",
@@ -38,7 +39,9 @@
     },
     "suggest": {
         "illuminate/console": "Required for the connect:test-sms Artisan command.",
-        "illuminate/support": "Required for the optional service provider and facade."
+        "illuminate/http": "Replaces the transport with Laravel's HTTP client so Http::fake() intercepts SDK requests.",
+        "illuminate/support": "Required for the optional service provider and facade.",
+        "phpunit/phpunit": "Required by the assertions on Vivalto\\Connect\\Testing\\FakeClient. Pest installs it too."
     },
     "autoload": {
         "psr-4": {
